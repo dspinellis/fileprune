@@ -12,7 +12,7 @@
 .\" WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
 .\" MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 .\"
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.1 2002/12/18 17:17:09 dds Exp $
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.2 2002/12/19 11:55:14 dds Exp $
 .\"
 .SH NAME
 prune \- prune a file set according to a given age distribution
@@ -20,8 +20,8 @@ prune \- prune a file set according to a given age distribution
 \fBprune\fP 
 [\fB\-n\fP|\fB\-N\fP|\fB\-p\fP]
 [\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP[\fBk\fP|\fBm\fP|\fBg\fP|\fBt\fP]|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
-[\fB\-e\fP \fIexponent\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
-[\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP]
+[\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
+[\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP]
 [\fB\-FK\fP]
 \fIfile\fR ...
 .SH DESCRIPTION
@@ -41,7 +41,7 @@ agressive pruning of the older files.
 The retention schedule specifies the age intervals for which files
 will be retained.
 As an example, an exponential retention schedule for 10 files
-with an exponent of 2 will be
+with a base of 2 will be
 .IP
 1 2 4 8 16 32 64 128 256 512 1024
 .PP
@@ -78,9 +78,13 @@ Keep files up to the specified \fIage\fP.
 The \fIage\fP argument can be followed by a
 \fBw\fP, \fBm\fP, or \fBy\fP suffix to specify
 weeks, months, or years.
-.IP "\fB\-e\fP \fIexponent\fP"
-Use an exponential distribution of the specified \fIexponent\fP for pruning.
-As an example, an exponent of 2 will retain 10 files in a period of 1024 days.
+.IP "\fB\-e\fP \fIbase\fP"
+Use an exponential distribution of the specified \fIbase\fP \fIb\fP for pruning.
+Each successive interval \fIn\fP will end at 
+.EQ
+b sup n.
+.EN
+As an example, a base of 2 will retain 10 files in a period of 1024 days.
 To determine the exponent for keeping \fIn\fP files in a period
 of \fId\fP days use the formula
 .EQ
