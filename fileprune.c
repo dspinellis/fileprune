@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.6 2002/12/23 21:03:49 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.7 2002/12/26 09:28:30 dds Exp $
  *
  */
 
@@ -28,13 +28,20 @@
 #include <string.h>
 #include <errno.h>
 
+#ifdef unix
+#include <unistd.h>	/* unlink, getopt */
+#else
+int unlink(const char *path);
+int getopt(int argc, char *argv[], char *optstring);
+/* For math libraries that do not support it */
+double erf(double);
+#endif
+
 #define PI 3.14159265358979323844
 #define SQRT2 1.41421356237309504880
 
 #define sqr(x) ((x) * (x))
 
-/* For math libraries that do not support it */
-double erf(double);
 
 #ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -46,11 +53,11 @@ static int opt_print_del = 0;	/* Do not delete files, just print them */
 static int opt_print_keep = 0;	/* Do not delete files, print the retained ones */
 static int opt_print_sched = 0;	/* Just print the schedule */
 static int opt_count = 0;	/* Keep count files */
-static unsigned long count;
+static long count;
 static int opt_size = 0;	/* Keep size files */
 static off_t size;
 static int opt_age = 0;		/* Keep files aged <days */
-static unsigned long days;
+static long days;
 static int opt_exp = 0;		/* Use exponential distribution */
 static double exponent = 2.0;
 static int opt_gauss = 0;	/* Use Gaussian distribution */
@@ -60,18 +67,6 @@ static int opt_fib = 0;		/* Use Fibonacci distribution */
 static char opt_timespec = 'm'; /* Time to use */
 static int opt_forceprune = 0;	/* Force pruning even if size/count are ok */
 static int opt_keepfiles = 0;	/* Keep files even if size/count are not ok */
-
-/* 
- * The normal (Gaussian) distribution function 
- * To see in in GNU plot type:
- * plot [-700:700] 1.0 / (180 * sqrt(2 * 3.141592)) * exp(-(x*x) / 2 / (180*1
-80))      
- */
-static double
-normal(double x)
-{
-	return 1.0 / (sd * sqrt(2 * PI)) * exp(-sqr(x) / 2 / sqr(sd));
-}
 
 static char *argv0;
 
@@ -115,7 +110,6 @@ error_pmsg(const char *operation, const char *fname)
 extern char	*optarg;	/* Global argument pointer. */
 extern int	optind;		/* Global argv index. */
 
-int getopt(int argc, char *argv[], char *optstring);
 
 /* Forward declarations */
 static void stat_files(int argc, char *argv[]);
@@ -123,6 +117,7 @@ static void create_schedule(void);
 static void print_schedule(void);
 static void execute_schedule(void);
 
+int
 main(int argc, char *argv[])
 {
 	int c;
@@ -274,7 +269,7 @@ static struct s_finfo {
 	int deleted;		/* True if deleted */
 } *finfo;
 
-static unsigned long nfiles = 0;
+static long nfiles = 0;
 static off_t totsize = 0;
 
 /* The pruning schedule and its depth */
@@ -421,7 +416,7 @@ prunefile(struct s_finfo *f)
 static void
 execute_schedule(void)
 {
-	unsigned int fi, si;	/* File and schedule index */
+	int fi, si;	/* File and schedule index */
 	time_t now;
 
 	qsort(finfo, nfiles, sizeof(struct s_finfo), bytime);
@@ -442,7 +437,6 @@ execute_schedule(void)
 			si--;
 	}
 	if (opt_size) {
-		off_t currsize = totsize;
 		/* Delete candidates */
 		for (fi = nfiles - 1; (opt_forceprune || totsize > size) && fi >= 0; fi--) {
 			if (finfo[fi].todelete) {
@@ -458,7 +452,7 @@ execute_schedule(void)
 			}
 		}
 	} else if (opt_count) {
-		unsigned int currcount = nfiles;
+		int currcount = nfiles;
 		/* Delete candidates */
 		for (fi = nfiles - 1; (opt_forceprune || currcount > count) && fi >= 0; fi--) {
 			if (finfo[fi].todelete) {
