@@ -1,4 +1,4 @@
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\dds-prune.ms,v 1.3 2002/12/24 17:27:08 dds Exp $
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\dds-prune.ms,v 1.4 2002/12/24 17:43:38 dds Exp $
 .\" login@usenix.org
 
 .TL
@@ -16,26 +16,26 @@ databases,
 PDAs, 
 network clients, and
 routers.
-The data contents of the above are often not directly backed-up onto tapes but,
-to disk-based files using a \fIcron(8)\fP job.
-The continous increases in disk capacities in many cases allow us to keep
-multiple sets of these backup files in a given directory as a substitute for a
-regular tape backup.
-These files are typically kept in a managable size by periodically retaining
+The data contents of the above are often not directly backed-up onto tapes,
+but copied to disk-based files by an appropriately scheduled \fIcron(8)\fP job.
+The continous increase in disk capacities allows us in many cases to keep
+multiple sets of these backup files in a given directory\(emas
+a substitute for a regular tape backup.
+These files are typically kept in a managable size by periodically purging
 all old files.
 Well-organized tape-based backups offer however an additional advantage:
 through a carefully staged tape retention schedule users can ofen retrieve
 files much older than the number of retained tapes.
 A tape backup schedule may for example involve daily incremental backups,
-weekly full backups retained for two months, and one monthly tape retained
+weekly full backups retained for two months, and monthly tapes retained
 for two years.
 In the above situation if I discover today that sometime in the previous
 six months I deleted a file I had created a year ago, I can go to the
-retained monthly backups  following the file's creation and retrieve it
+retained monthly backups  that followed the file's creation and retrieve it
 from there.
 .PP
 Backups to files are not often organized in this manner.
-Two approaches I have seen
+Two approaches I have seen for managing their size
 involve either naming each file with a periodically repeated
 date element, such as the day of the week or month, so that newer
 files will overwrite older ones,
@@ -51,10 +51,10 @@ The problem of selectively retaining old files gets especially difficult
 when the backups are created at irregular intervals e.g. each time
 you synchronize your PDA or remember to backup your cellular phone directory.
 .PP
-On the other hand, a file-based backup scheme offers us the ability
-to examine all the retained files and selectively prune those we decide
-are not worth keeping.
-The key concept for deciding which files to keep is the retention schedule.
+On the other hand, a file-based backup scheme offers the additional posibility
+to automaticaly examine all the retained files and selectively prune
+those we decide are not worth keeping.
+The key concept for deciding which files to keep is a \fIretention schedule\fP.
 In tape-based schemes this simply revolves around weeks, months, and years.
 If we have a tool for managing the file pruning we can be more creative
 in selecting a retention schedule, and hopefully use one that will,
@@ -63,9 +63,9 @@ old file we discovered missing.
 .SH
 Retention Schedules
 .PP
-When I first decided to work on this problem, I thought about an
+When I first decided to work on the file pruning problem, I considered using an
 \fIexponential\fP retention schedule.
-I would like to keep yesterday's backup, a backup two days ago,
+I would like to keep yesterday's backup, a backup for two days ago,
 then backups aged 4, 8, 16, 32, and 64 days.  
 With 10 files I could cover a period lasting more than a year.
 The above schedule uses 2 as the schedule's base;
@@ -87,7 +87,7 @@ we would probably find that the age of the requested files would
 follow the uniquitous bell-shaped \fInormal\fP or \fIGaussian\fP distribution.
 The exact shape of the bell is determined by the \fIstandard deviation\fP
 of the requested file ages;
-this expresses the variation (in the same unit unit as we measure the file
+this expresses the variation (in the same unit as we measure the file
 ages) between the ages of different requested files.
 Since recovery requests
 from all users (appart from point-haired managers)
@@ -102,7 +102,7 @@ f(x) = 1 over { sqrt{2 pi } sigma } e sup {-x sup 2 over {2 sigma  sup 2}}
 but once it is coded in a program, its application can be a breeze.
 The curve represents the probability that a file of a given age
 will be requested.
-You can see that, as we are intuitevely expecting, as files age they are
+You can see that, following out intuitive expectation, as files age they are
 less likely to be needed.
 In order to distribute our archive files in a way that reflects this
 diminishing probability distribution we need to define our retention interval
@@ -114,7 +114,7 @@ for the mathematically inclined, the area for an interval from
 .EQ
 int from a to b f(x) dx
 .EN
-What we thus need to do is to divide the whole area under the curve into
+We therefore need to divide the whole area under the curve into
 a number of equally-sized parts, as many as the files we can afford to retain,
 and then calculate the respective intervals.
 .PP
@@ -197,10 +197,10 @@ as the constraints for the number (count), size, or age of the
 files to retain using the
 \fB\-c\fP, \fB\-s\fP, and \fB\-a\fP options.
 By default the constraints are used to specify the upper limit
-of the size of number of files that will be retained.
+of the size or number of files that will be retained.
 If more files can be accommodated (because e.g. some intervals are
 empty), or the specified size limit has not been reached, \fIprune\fP
-will retain those files, deleting old files until the constraint is
+will retain additional files, deleting old files until the constraint is
 satisfied.
 The \fB-F\fP flag can be used to override this behaviour.
 On the other hand, if a constraint is violated \fIprune\fP
@@ -248,7 +248,7 @@ As above, but leave no more than one file in each scheduled interval.
 .ft C
 prune -K -e 2 -s 5G *
 .DE
-As in the first example of the %g-constrained series,
+As in the first example of the 5G-constrained series,
 but leave exactly one file in each interval,
 even if this will violate the size constraint.
 .DS
