@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.3 2002/12/18 15:08:04 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.4 2002/12/23 20:26:54 dds Exp $
  *
  */
 
@@ -28,8 +28,17 @@
 #include <string.h>
 #include <errno.h>
 
-#define PI 3.141592653589793
+#define PI 3.14159265358979323844
+#define SQRT2 1.41421356237309504880
+
 #define sqr(x) ((x) * (x))
+
+/* For math libraries that do not support it */
+double erf(double);
+
+#ifndef max
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#endif
 
 
 /* Program options and their arguments */
@@ -118,6 +127,16 @@ main(int argc, char *argv[])
 {
 	int c;
 	char *endptr;
+
+	static double integrate(double (*f)(double), double a, double b);
+	static double D(double x);
+	int i;
+	for (i = 0; i < 300; i++) {
+		double a, b;
+
+		printf("%g %g ", a = D(i) - .5, b = integrate(normal, 0, i));
+		printf("%g\n", fabs(a - b));
+	}
 
 	argv0 = argv[0];
 	while ((c = getopt(argc, argv, "nNpc:s:a:e:g:ft:FK")) != EOF)
@@ -258,8 +277,16 @@ trapezium(double (*f)(double), double a, double b, int order)
 #define PRECISION 1e-4
 
 /*
- * Integrate f from a to b
+ * The Gaussian function cumulative distribution function
+ * for mean == 0
+ * See http://mathworld.wolfram.com/GaussianDistribution.html
  */
+static double
+D(double x)
+{
+	return fabs(1. + erf(x / sd / SQRT2)) / 2.0;
+}
+
 static double
 integrate(double (*f)(double), double a, double b)
 {
@@ -364,7 +391,13 @@ create_schedule(void)
 		if (opt_size)
 			depth = size / (totsize / nfiles);
 		else if (opt_age)
-			depth = (int)(integrate(normal, 0, days) / integrate(normal, 0, 1));
+			/* 
+			 * Divide the total area for days by the one-day area:
+			 * {int from 0 to days normal} over 
+			 * {int from 0 to 1 normal} 
+			 * where int from 0 to x == D(x) - 0.5
+			 */
+			depth = (int)((D(days) - .5) / (D(1) - .5));
 		else
 			depth = max(count, nfiles);
 	} else
@@ -395,7 +428,7 @@ create_schedule(void)
 
 		while (n < depth) {
 			/* Find how many days area needed to cover area */
-			if (integrate(normal, start, current) > area ||
+			if (D(current) - D(start) > area ||
 				/* Avoid torturing yourself at the functions's end */
 			    (n == depth - 1 && current - start > 2 * diff)) {
 				diff = current - start;
@@ -421,9 +454,9 @@ print_schedule(void)
 
 /* qsort comparisson function */
 static int
-bytime(const struct s_finfo *a, const struct s_finfo *b)
+bytime(const void *a, const void *b)
 {
-	return (b->time - a->time);
+	return (((const struct s_finfo *)b)->time - ((const struct s_finfo *)a)->time);
 }
 
 /*
