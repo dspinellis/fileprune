@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.4 2002/12/23 20:26:54 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.5 2002/12/23 20:30:58 dds Exp $
  *
  */
 
@@ -128,16 +128,6 @@ main(int argc, char *argv[])
 	int c;
 	char *endptr;
 
-	static double integrate(double (*f)(double), double a, double b);
-	static double D(double x);
-	int i;
-	for (i = 0; i < 300; i++) {
-		double a, b;
-
-		printf("%g %g ", a = D(i) - .5, b = integrate(normal, 0, i));
-		printf("%g\n", fabs(a - b));
-	}
-
 	argv0 = argv[0];
 	while ((c = getopt(argc, argv, "nNpc:s:a:e:g:ft:FK")) != EOF)
 		switch (c) {
@@ -245,66 +235,16 @@ main(int argc, char *argv[])
 	return (0);
 }
 
-
-/*
- * Perform an nth order trapezium integration of f from a to b
- */
-static double
-trapezium(double (*f)(double), double a, double b, int order)
-{
-	static double resval;
-
-	if (order == 1)
-		resval = (b - a) * (f(a) + f(b)) / 2.0;
-	else {
-		int i, npoints;
-		double x, distance, sum = 0;
-
-		npoints = 1 << (order - 1);
-		distance = (b - a) / npoints;
-		//printf("np=%d dist=%g\n", npoints, distance);
-		x = a + distance / 2.0;
-		for (i = 0; i < npoints; i++) {
-			//printf("x = %g f = %g\n", x, f(x));
-			sum += f(x);
-			x += distance;
-		}
-		resval = (resval + (b - a) * sum / npoints) / 2.0;
-	}
-	return resval;
-}
-
-#define PRECISION 1e-4
-
 /*
  * The Gaussian function cumulative distribution function
  * for mean == 0
  * See http://mathworld.wolfram.com/GaussianDistribution.html
+ * The erf "error function" is available under most Unix math libraries
  */
 static double
 D(double x)
 {
 	return fabs(1. + erf(x / sd / SQRT2)) / 2.0;
-}
-
-static double
-integrate(double (*f)(double), double a, double b)
-{
-	double r, prev;
-	int i;
-
-	//printf("Integrate %g %g=", a, b);
-	for (i = 1; i < 40; i++) {
-		r = trapezium(f, a, b, i);
-		//printf("r=%g\n", r);
-		if (i > 5 && fabs(r - prev) <= PRECISION * fabs(prev)) {
-			//printf("%g\n", r);
-			return r;
-		}
-		prev = r;
-	}
-	/* Numerical instability */
-	assert(0);
 }
 
 static void *
