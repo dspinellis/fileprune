@@ -1,4 +1,4 @@
-.TH PRUNE 1 "18 December 2002"
+.TH FILEPRUNE 1 "13 October 2003"
 .\" 
 .\" (C) Copyright 2002 Diomidis Spinellis.  All rights reserved.
 .\" 
@@ -12,12 +12,12 @@
 .\" WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
 .\" MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 .\"
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.4 2002/12/24 17:48:51 dds Exp $
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.5 2003/10/15 12:32:08 dds Exp $
 .\"
 .SH NAME
-prune \- prune a file set according to a given age distribution
+fileprune \- prune a file set according to a given age distribution
 .SH SYNOPSIS
-\fBprune\fP 
+\fBfileprune\fP 
 [\fB\-n\fP|\fB\-N\fP|\fB\-p\fP]
 [\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP[\fBk\fP|\fBm\fP|\fBg\fP|\fBt\fP]|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
@@ -25,7 +25,7 @@ prune \- prune a file set according to a given age distribution
 [\fB\-FK\fP]
 \fIfile\fR ...
 .SH DESCRIPTION
-\fIPrune\fP 
+\fIFileprune\fP 
 will delete files from the specified set targeting a given distribution
 of the files within time as well as size, number, and age constraints.
 Its main purpose is to keep a set of daily-created backup files
@@ -49,13 +49,13 @@ The above schedule specifies that for the interval of 65 to 128
 days there should be (at least) one retained file (unless constraints
 and options override this setting).
 Retention schedules are always calculated and evaluated in integer days.
-By default \fIprune\fP will keep the oldest file within each day interval
+By default \fIfileprune\fP will keep the oldest file within each day interval
 allowing files to migrate from one interval to the next as time goes by.
 It may also keep additional files, if the complete file set satisfies
 the specified constraint.
 The algorithm used for pruning does not assume that the files are
 uniformly distributed;
-\fIprune\fP will successfully prune file collections stored at
+\fIfileprune\fP will successfully prune file collections stored at
 irregular intervals.
 
 .SH OPTIONS
@@ -127,7 +127,7 @@ even if the size or count constraint has been exceeded.
 .ft C
 ssh remotehost tar cf - /datafiles >backup/`date +'%Y%m%d'`
 .br
-prune -e 2 backup/*
+fileprune -e 2 backup/*
 .ft P
 .br
 Backup \fIremotehost\fP, storing the result in a file
@@ -137,14 +137,14 @@ so that each retained file's age will be double that of its
 immediately younger neighbor.
 .PP
 .ft C
-prune -g 365 -c 30 *
+fileprune -g 365 -c 30 *
 .ft P
 .br
 Keep at most 30 files with their ages following a
 Gaussian (normal) distribution with a standard deviation of one year.
 .PP
 .ft C
-prune -e 2 -s 5G *
+fileprune -e 2 -s 5G *
 .ft P
 .br
 Prune the specified files following an 
@@ -156,13 +156,13 @@ Alternatively, some old intervals may be emptied in order
 to satisfy the size constraint.
 .PP
 .ft C
-prune -F -e 2 -s 5G *
+fileprune -F -e 2 -s 5G *
 .ft P
 .br
 As above, but leave no more than one file in each scheduled interval.
 .PP
 .ft C
-prune -K -e 2 -s 5G *
+fileprune -K -e 2 -s 5G *
 .ft P
 .br
 As in the first example of the %g-constrained series,
@@ -170,7 +170,7 @@ but leave exactly one file in each interval,
 even if this will violate the size constraint.
 .PP
 .ft C
-prune -a 1m -f
+fileprune -a 1m -f
 .ft P
 .br
 Delete all files older than one month use;
@@ -192,7 +192,7 @@ It is advisable to first calculate and
 print the pruning schedule with a command like
 .br
 .ft C
-prune -g 100 -p -c 20
+fileprune -g 100 -p -c 20
 .ft P
 .br
 to ensure that the schedule can be calculated.

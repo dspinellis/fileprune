@@ -1,6 +1,6 @@
 /*
  *
- * prune - Prune a set of files, removing older copies
+ * fileprune - Prune a set of files, removing older copies
  *
  * (C) Copyright 2002 Diomidis Spinellis
  * 
@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.7 2002/12/26 09:28:30 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.8 2003/10/15 12:32:08 dds Exp $
  *
  */
 
@@ -397,7 +397,7 @@ bytime(const void *a, const void *b)
 }
 
 /*
- * Try to prunefile a file - as specified
+ * Try to prune a file - as specified
  */
 static void
 prunefile(struct s_finfo *f)
