@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.2 2002/12/18 15:07:05 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.3 2002/12/18 15:08:04 dds Exp $
  *
  */
 
@@ -280,22 +280,6 @@ integrate(double (*f)(double), double a, double b)
 	assert(0);
 }
 
-/* Area under the curve is 1
-
-exp(2)	fib+1	gauss
-1	1
-2	2
-4	3
-8	5
-16	8
-32	13
-64	21
-128	34
-256	55
-
-integral(0, inf) = 0.5
-*/
-
 static void *
 xmalloc(size_t size)
 {
@@ -364,6 +348,11 @@ stat_files(int argc, char *argv[])
 	}
 }
 
+/*
+ * Create the pruning schedule in the schedule array.
+ * This contains the day numbers of each interval that
+ * should have a file retained.
+ */
 static void
 create_schedule(void)
 {
@@ -451,8 +440,8 @@ prunefile(struct s_finfo *f)
 }
 
 /*
- * delete from oldest to newest until size/count is reached
- * OR delete all files older than age and all candidates
+ * Given the theoretical pruning schedule and the actual files
+ * perform the pruning operation.
 */
 static void
 execute_schedule(void)
