@@ -2,19 +2,19 @@
  *
  * fileprune - Prune a set of files, removing older copies
  *
- * (C) Copyright 2002 Diomidis Spinellis
- * 
+ * (C) Copyright 2002-2004 Diomidis Spinellis
+ *
  * Permission to use, copy, and distribute this software and its
  * documentation for any purpose and without fee is hereby granted,
  * provided that the above copyright notice appear in all copies and that
  * both that copyright notice and this permission notice appear in
  * supporting documentation.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.8 2003/10/15 12:32:08 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.9 2004/03/28 11:36:34 dds Exp $
  *
  */
 
@@ -42,11 +42,9 @@ double erf(double);
 
 #define sqr(x) ((x) * (x))
 
-
 #ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
-
 
 /* Program options and their arguments */
 static int opt_print_del = 0;	/* Do not delete files, just print them */
@@ -73,7 +71,7 @@ static char *argv0;
 static void
 usage(void)
 {
-	fprintf(stderr, 
+	fprintf(stderr,
 		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]] [-e exp|-g sd|-f] [-t a|m|c] [-FK] file ...\n"
 		"-n\t\tDo not delete files; print file names to delete\n"
 		"-N\t\tDo not delete files; print file names to retain\n"
@@ -167,18 +165,18 @@ main(int argc, char *argv[])
 			if (!*optarg || days == 0)
 				error_msg("Invalid days argument");
 			switch (*endptr) {
-			case 'w': case 'W': 
+			case 'w': case 'W':
 				days *= 7;
 				break;
-			case 'm': case 'M': 
+			case 'm': case 'M':
 				days = (int)(days * 30.4375);
 				break;
-			case 'y': case 'Y': 
+			case 'y': case 'Y':
 				days = (int)(days * 365.25);
 				break;
-			case 0: 
+			case 0:
 				break;
-			default: 
+			default:
 				error_msg("Invalid date multiplier");
 			}
 			break;
@@ -242,6 +240,7 @@ D(double x)
 	return fabs(1. + erf(x / sd / SQRT2)) / 2.0;
 }
 
+/* Checked malloc */
 static void *
 xmalloc(size_t size)
 {
@@ -251,6 +250,7 @@ xmalloc(size_t size)
 	return (p);
 }
 
+/* Checked strdup */
 static char *
 xstrdup(const char *str)
 {
@@ -326,10 +326,10 @@ create_schedule(void)
 		if (opt_size)
 			depth = size / (totsize / nfiles);
 		else if (opt_age)
-			/* 
+			/*
 			 * Divide the total area for days by the one-day area:
-			 * {int from 0 to days normal} over 
-			 * {int from 0 to 1 normal} 
+			 * {int from 0 to days normal} over
+			 * {int from 0 to 1 normal}
 			 * where int from 0 to x == D(x) - 0.5
 			 */
 			depth = (int)((D(days) - .5) / (D(1) - .5));
@@ -380,6 +380,7 @@ create_schedule(void)
 			schedule[i] = i;
 }
 
+/* Print (rather than execute) the calculated schedule */
 static void
 print_schedule(void)
 {
@@ -412,7 +413,7 @@ prunefile(struct s_finfo *f)
 /*
  * Given the theoretical pruning schedule and the actual files
  * perform the pruning operation.
-*/
+ */
 static void
 execute_schedule(void)
 {
