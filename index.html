@@ -1,0 +1,76 @@
+<!doctype html public "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<title>fileprune</title>
+<meta name="AUTHOR" content="Diomidis Spinellis">
+</head>
+<body>
+<h1 align=right><tt><font color="#ff0000">fileprune dds</font></tt></h1>
+<h2>Fileprune</h2>
+
+<em>Fileprune</em>
+will delete files from the specified set targetting a given distribution
+of the files within time as well as size, number, and age constraints.
+Its main purpose is to keep a set of daily-created backup files
+in managable size,
+while still providing reasonable access to older versions.
+Specifying a size, file number, or age constraint will
+simply remove files starting from the oldest, until the
+constraint is met.
+The distribution specification (exponential, Gaussian (normal), or Fibonacci)
+provides finer control of the files to delete,
+allowing the retention of recent copies and the increasingly
+agressive pruning of the older files.
+The retention schedule specifies the age intervals for which files
+will be retained.
+As an example, an exponential retention schedule for 10 files
+with a base of 2 will be<br>
+1 2 4 8 16 32 64 128 256 512 1024
+<p />
+The above schedule specifies that for the interval of 65 to 128
+days there should be (at least) one retained file (unless constraints
+and options override this setting).
+Retention schedules are always calculated and evaluated in integer days.
+By default <em>fileprune</em> will keep the oldest file within each day interval
+allowing files to migrate from one interval to the next as time goes by.
+It may also keep additional files, if the complete file set satisfies
+the specified constraint.
+The algorithm used for prunning does not assume that the files are
+uniformally distributed;
+<em>fileprune</em> will successfully prune file collections stored at
+irregular intervals.
+<p />
+You can read more in the article
+<a HREF="../../../pubs/trade/2003-login-prune/html/prune.html">Organized pruning of file sets</a>.
+<cite>;login:</cite>, 28(3):39-42, June 2003. <p />
+
+<p />
+
+<h3>Download</h3>
+The current <em>fileprune</em> version is VERSION.
+The following pages do not contain navigation links.
+Following a link will open a new browser window.
+<ul>
+<li><a href="fileprune-VERSION.tar.gz" target="NEW">Source and documentation tarball (.tar.gz)</a>
+<li><a href="fileprune.c" target="NEW">Fileprune source code</a>
+<li><a href="fileprune.pdf" target="NEW">Formatted manual page (PDF)</a>
+<li><a href="fileprune.1" target="NEW">Fileprune manual page source (eqn | *roff -man)</a>
+<li>Under WIN32 you will also need
+<a href="erf.c" target="NEW">erf.c</a> and
+<a href="getopt.c" target="NEW">getopt.c</a>.
+Compile using the command "cl fileprune.c erf.c getopt.c setargv.obj"
+<li><a href="fileprune.exe" target="NEW">Win32 executable file</a>
+<li><a href="ChangeLog.txt" target="NEW">Change Log</a>
+</ul>
+
+<a href="../../.." target="NEW">Diomidis Spinellis home page</a>
+<hr /> <p />
+<font size=-2>
+(C) Copyright 2002-2004 D. Spinellis.
+May be freely uploaded by WWW viewers and similar programs.
+All other rights reserved.
+<br />
+Last modified: $Date: 2004/03/27 15:58:34 $
+</font>
+</body>
+</html>
