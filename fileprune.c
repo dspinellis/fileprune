@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.1 2002/12/18 14:38:08 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.2 2002/12/18 15:07:05 dds Exp $
  *
  */
 
@@ -33,8 +33,9 @@
 
 
 /* Program options and their arguments */
-static int opt_nodel = 0;	/* Do not delete files */
-static int opt_print = 0;	/* Just print the schedule */
+static int opt_print_del = 0;	/* Do not delete files, just print them */
+static int opt_print_keep = 0;	/* Do not delete files, print the retained ones */
+static int opt_print_sched = 0;	/* Just print the schedule */
 static int opt_count = 0;	/* Keep count files */
 unsigned long count;
 static int opt_size = 0;	/* Keep size files */
@@ -69,8 +70,9 @@ static void
 usage(void)
 {
 	fprintf(stderr, 
-		"usage: %s [-n|-p] [-c count|-s size[k|m|g|t]|-a age[w|m|y]] [-e exp|-g sd|-f] [-t a|m|c] [-FK] file ...\n"
-		"-n\t\tDo not delete files; only print actions\n"
+		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]] [-e exp|-g sd|-f] [-t a|m|c] [-FK] file ...\n"
+		"-n\t\tDo not delete files; print file names to delete\n"
+		"-N\t\tDo not delete files; print file names to retain\n"
 		"-p\t\tPrint the specified schedule for count elements\n"
 		"-c count\tKeep count files\n"
 		"-s size\t\tKeep files of size bytes (can multiply with k, m, g, t)\n"
@@ -118,13 +120,16 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "npc:s:a:e:g:ft:FK")) != EOF)
+	while ((c = getopt(argc, argv, "nNpc:s:a:e:g:ft:FK")) != EOF)
 		switch (c) {
 		case 'n':
-			opt_nodel = 1;
+			opt_print_del = 1;
+			break;
+		case 'N':
+			opt_print_keep = 1;
 			break;
 		case 'p':
-			opt_print = 1;
+			opt_print_sched = 1;
 			break;
 		case 'c':
 			if (!optarg)
@@ -206,15 +211,15 @@ main(int argc, char *argv[])
 		case '?':
 			usage();
 		}
-		if ((opt_nodel && opt_print) ||
+		if ((opt_print_keep + opt_print_del + opt_print_sched > 1) ||
 		    (opt_count + opt_size + opt_age > 1) ||
 		    (opt_exp + opt_gauss + opt_fib > 1) ||
-		    (opt_print && !opt_count) ||
-		    (argv[optind] == NULL && !opt_print))
+		    (opt_print_sched && !opt_count) ||
+		    (argv[optind] == NULL && !opt_print_sched))
 			usage();
 	stat_files(argc - optind, argv + optind);
 	create_schedule();
-	if (opt_print)
+	if (opt_print_sched)
 		print_schedule();
 	else
 		execute_schedule();
@@ -315,6 +320,7 @@ static struct s_finfo {
 	off_t size;		/* Its size in bytes */
 	time_t time;		/* Age time (as specified) */
 	int todelete;		/* True if delete candidate */
+	int deleted;		/* True if deleted */
 } *finfo;
 
 static unsigned long nfiles = 0;
@@ -354,7 +360,7 @@ stat_files(int argc, char *argv[])
 		finfo[i].size = sb.st_size;
 		totsize += sb.st_size;
 		finfo[i].name = xstrdup(argv[i]);
-		finfo[i].todelete = 1;
+		finfo[i].deleted = finfo[i].todelete = 0;
 	}
 }
 
@@ -435,13 +441,13 @@ bytime(const struct s_finfo *a, const struct s_finfo *b)
  * Try to prunefile a file - as specified
  */
 static void
-prunefile(const char *fname)
+prunefile(struct s_finfo *f)
 {
-	if (opt_nodel)
-		printf("%s\n", fname);
+	if (opt_print_keep || opt_print_del)
+		f->deleted = 1;
 	else
-		if (unlink(fname) < 0)
-			error_pmsg("unlink", fname);
+		if (unlink(f->name) < 0)
+			error_pmsg("unlink", f->name);
 }
 
 /*
@@ -457,13 +463,13 @@ execute_schedule(void)
 	qsort(finfo, nfiles, sizeof(struct s_finfo), bytime);
 	/* Mark delete candidates */
 	time(&now);
-	for (fi = nfiles - 1, si = depth - 1; fi >= 0 && si >= 0; ) {
+	for (fi = nfiles - 1, si = depth - 1; fi >= 0; ) {
 		int age = (int)(difftime(now, finfo[fi].time) / 60 / 60 / 24) + 1;
-		if (age > schedule[si]) {
+		if (si == -1 || age > schedule[si]) {
 			/* File older than our interval: dump it, next file */
 			finfo[fi].todelete = 1;
 			fi--;
-		} else if (age <= schedule[si] && (si == 0 || age > schedule[si -1])) {
+		} else if (age <= schedule[si] && (si == 0 || age > schedule[si - 1])) {
 			/* File within our interval: keep it, next interval */
 			fi--;
 			si--;
@@ -475,41 +481,50 @@ execute_schedule(void)
 		off_t currsize = totsize;
 		/* Delete candidates */
 		for (fi = nfiles - 1; (opt_forceprune || totsize > size) && fi >= 0; fi--) {
-			if (finfo[fi].todelete)
-				prunefile(finfo[fi].name);
-			totsize -= finfo[fi].size;
+			if (finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				totsize -= finfo[fi].size;
+			}
 		}
 		/* Delete non-candidate old files */
 		for (fi = nfiles - 1; !opt_keepfiles && totsize > size && fi >= 0; fi--) {
-			if (!finfo[fi].todelete)
-				prunefile(finfo[fi].name);
-			totsize -= finfo[fi].size;
+			if (!finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				totsize -= finfo[fi].size;
+			}
 		}
 	} else if (opt_count) {
 		int currcount = nfiles;
 		/* Delete candidates */
 		for (fi = nfiles - 1; (opt_forceprune || currcount > count) && fi >= 0; fi--) {
-			if (finfo[fi].todelete)
-				prunefile(finfo[fi].name);
-			currcount--;
+			if (finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				currcount--;
+			}
 		}
 		/* Delete non-candidate old files */
 		for (fi = nfiles - 1; !opt_keepfiles && currcount > count && fi >= 0; fi--) {
-			if (!finfo[fi].todelete)
-				prunefile(finfo[fi].name);
-			currcount--;
+			if (!finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				currcount--;
+			}
 		}
 	} else {
 		/* Delete candidates */
 		for (fi = nfiles - 1; fi >= 0; fi--)
 			if (finfo[fi].todelete)
-				prunefile(finfo[fi].name);
+				prunefile(&finfo[fi]);
 	}
 	if (opt_age) {
 		/* Delete all old files */
 		time_t limit = now - days * 60 * 60 * 24;
 		for (fi = nfiles - 1; fi >= 0; fi--)
 			if (!finfo[fi].todelete && finfo[fi].time < limit)
-				prunefile(finfo[fi].name);
+				prunefile(&finfo[fi]);
 	}
+	if (opt_print_keep || opt_print_del)
+		for (fi = 0; fi < nfiles; fi++)
+			if ((opt_print_del && finfo[fi].deleted) ||
+			    (opt_print_keep && !finfo[fi].deleted))
+				printf("%s\n", finfo[fi].name);
 }
