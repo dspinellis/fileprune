@@ -12,7 +12,7 @@
 .\" WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
 .\" MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 .\"
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.2 2002/12/19 11:55:14 dds Exp $
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.3 2002/12/23 21:20:45 dds Exp $
 .\"
 .SH NAME
 prune \- prune a file set according to a given age distribution
@@ -123,18 +123,29 @@ Keep files scheduled in each pruning interval,
 even if the size or count constraint has been exceeded.
 
 .SH EXAMPLE
-prune -e 2 backup/*
+.PP
+.ft C
+ssh remotehost tar cf - /datafiles >backup/`date +'%Y%m%d'`
 .br
+prune -e 2 backup/*
+.ft P
+.br
+Backup \fIremotehost\fP, storing the result in file file
+named with today's timestamp (e.g. 20021219).
 Prune the files in the backup directory
 so that each retained file's age will be double that of its
 immediately younger neighbour.
-.LP
+.PP
+.ft C
 prune -g 365 -c 30 *
+.ft P
 .br
 Keep at most 30 files with their ages following a
 Gaussian (normal) distribution with a standard deviation of one year.
-.LP
+.PP
+.ft C
 prune -e 2 -s 5G *
+.ft P
 .br
 Prune the specified files following an 
 exponential schedule so that no more than
@@ -143,34 +154,45 @@ More than one file may be left in an interval,
 if the size constraint is met.
 Alternatively, some old intervals may be emptied in order
 to satisfy the size constraint.
-.LP
+.PP
+.ft C
 prune -F -e 2 -s 5G *
+.ft P
 .br
 As above, but leave no more than one file in each scheduled interval.
-.LP
+.PP
+.ft C
 prune -K -e 2 -s 5G *
+.ft P
 .br
-As in the first example of this series,
+As in the first example of the %g-constrained series,
 but leave exactly one file in each interval,
 even if this will violate the size constraint.
-.LP
+.PP
+.ft C
 prune -a 1m -f
+.ft P
 .br
 Delete all files older than one month use;
-a Fibonacci distribution for pruning the remaining ones.
+use a Fibonacci distribution for pruning the remaining ones.
 .SH "SEE ALSO"
 newsyslog(8)
 .SH AUTHOR
 (C) Copyright 2002 Diomidis Spinellis.
 .SH BUGS
-The Gaussian (normal) distribution is calculated by numerically integrating
-the normal function.
+The Gaussian (normal) distribution is calculated by trying successive
+increments of the normal function's distribution function.
 If the file number or count is large compared to the
 specified standard deviation, the calculation may take
 an exceedingly long time.
+To get results in a reasonable time,
+day increments are bounded at 10 times the increment of the previous interval
+and a total age of 100 years.
 It is advisable to first calculate and
 print the pruning schedule with a command like
 .br
+.ft C
 prune -g 100 -p -c 20
+.ft P
 .br
 to ensure that the schedule can be calculated.
