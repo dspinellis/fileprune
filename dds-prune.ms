@@ -1,4 +1,4 @@
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\dds-prune.ms,v 1.2 2002/12/23 16:25:07 dds Exp $
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\dds-prune.ms,v 1.3 2002/12/24 17:27:08 dds Exp $
 .\" login@usenix.org
 
 .TL
@@ -119,15 +119,22 @@ a number of equally-sized parts, as many as the files we can afford to retain,
 and then calculate the respective intervals.
 .PP
 .PSPIC distr.eps
-Unfortunately, there is no formula that can give us the numbers we are looking
-for, however, we can numerically integrate the normal function adjusting the
-interval as we move back into time.
-On modern machines, this computationally intensive work will typically take
-less than a second.
+Unfortunately, there is no mathematical formula with a finite number of
+terms that can give us the numbers we are looking for.
+Initially, I wrote code to numerically integrate the normal function
+adjusting the interval while moving back into time.
+A few days later, my colleague Stavros Grigorakakis, reading a draft of
+these notes, pointed me to an excellent analysis of the Gaussian function
+available online at
+\fChttp://mathworld.wolfram.com/GaussianDistribution.html\fP.
+There I found that the cumulative distribution function
+(the integral I was painstakenly calculating) can be determined by means of
+the so-called \fIerror function\fP, which surprise-surprise is part of the 
+Unix C math library.
 You can see how we would spread 30 files in a period of around 2000 days
 using an exponential distribution with a base of 1.3 and a normal distribution
 with a standard deviation of 1000 in Figure 2.
-For comparisson purposes I have also included how a Fibonacci distribution
+For comparison purposes I have also included how a Fibonacci distribution
 and an exponential distribution with a base of 2
 would appear in the above scheme; only 18 files would fit in the
 Fibonacci distribution and 12 in the base-2 exponential.
