@@ -14,7 +14,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.5 2002/12/23 20:30:58 dds Exp $
+ * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.6 2002/12/23 21:03:49 dds Exp $
  *
  */
 
@@ -46,11 +46,11 @@ static int opt_print_del = 0;	/* Do not delete files, just print them */
 static int opt_print_keep = 0;	/* Do not delete files, print the retained ones */
 static int opt_print_sched = 0;	/* Just print the schedule */
 static int opt_count = 0;	/* Keep count files */
-unsigned long count;
+static unsigned long count;
 static int opt_size = 0;	/* Keep size files */
-unsigned long size;
+static off_t size;
 static int opt_age = 0;		/* Keep files aged <days */
-unsigned long days;
+static unsigned long days;
 static int opt_exp = 0;		/* Use exponential distribution */
 static double exponent = 2.0;
 static int opt_gauss = 0;	/* Use Gaussian distribution */
@@ -369,8 +369,10 @@ create_schedule(void)
 		while (n < depth) {
 			/* Find how many days area needed to cover area */
 			if (D(current) - D(start) > area ||
-				/* Avoid torturing yourself at the functions's end */
-			    (n == depth - 1 && current - start > 2 * diff)) {
+			    /* Avoid torture at the functions's end */
+			    (n == depth - 1 && current - start > 2 * diff) ||
+			    current - start > 10 * diff ||
+			    current > 365000) {
 				diff = current - start;
 				schedule[n++] = start + 1;
 				start = current;
@@ -392,7 +394,7 @@ print_schedule(void)
 		printf("%d\n", schedule[i]);
 }
 
-/* qsort comparisson function */
+/* qsort comparison function */
 static int
 bytime(const void *a, const void *b)
 {
@@ -419,7 +421,7 @@ prunefile(struct s_finfo *f)
 static void
 execute_schedule(void)
 {
-	int fi, si;	/* File and schedule index */
+	unsigned int fi, si;	/* File and schedule index */
 	time_t now;
 
 	qsort(finfo, nfiles, sizeof(struct s_finfo), bytime);
@@ -456,7 +458,7 @@ execute_schedule(void)
 			}
 		}
 	} else if (opt_count) {
-		int currcount = nfiles;
+		unsigned int currcount = nfiles;
 		/* Delete candidates */
 		for (fi = nfiles - 1; (opt_forceprune || currcount > count) && fi >= 0; fi--) {
 			if (finfo[fi].todelete) {
