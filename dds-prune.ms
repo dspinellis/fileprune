@@ -1,4 +1,4 @@
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\dds-prune.ms,v 1.4 2002/12/24 17:43:38 dds Exp $
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\dds-prune.ms,v 1.5 2002/12/24 17:46:56 dds Exp $
 .\" login@usenix.org
 
 .TL
@@ -18,13 +18,13 @@ network clients, and
 routers.
 The data contents of the above are often not directly backed-up onto tapes,
 but copied to disk-based files by an appropriately scheduled \fIcron(8)\fP job.
-The continous increase in disk capacities allows us in many cases to keep
+The continuous increase in disk capacities allows us in many cases to keep
 multiple sets of these backup files in a given directory\(emas
 a substitute for a regular tape backup.
-These files are typically kept in a managable size by periodically purging
+These files are typically kept in a manageable size by periodically purging
 all old files.
 Well-organized tape-based backups offer however an additional advantage:
-through a carefully staged tape retention schedule users can ofen retrieve
+through a carefully staged tape retention schedule users can often retrieve
 files much older than the number of retained tapes.
 A tape backup schedule may for example involve daily incremental backups,
 weekly full backups retained for two months, and monthly tapes retained
@@ -45,14 +45,14 @@ and having a separate script remove files older than a given date.
 Both approaches however, lack the property of selectively
 retaining a subset of older files.
 More elaborate schemes can of course be constructed by carefully
-syncronizing and staging separate \fIcron(8)\fP jobs,
+synchronizing and staging separate \fIcron(8)\fP jobs,
 but I have never seen them applied in practice.
 The problem of selectively retaining old files gets especially difficult
 when the backups are created at irregular intervals e.g. each time
 you synchronize your PDA or remember to backup your cellular phone directory.
 .PP
-On the other hand, a file-based backup scheme offers the additional posibility
-to automaticaly examine all the retained files and selectively prune
+On the other hand, a file-based backup scheme offers the additional possibility
+to automatically examine all the retained files and selectively prune
 those we decide are not worth keeping.
 The key concept for deciding which files to keep is a \fIretention schedule\fP.
 In tape-based schemes this simply revolves around weeks, months, and years.
@@ -84,13 +84,13 @@ securing my valuable data.
 It turns out that none of the two is.
 If we were to sample data recovery requests in a large data center
 we would probably find that the age of the requested files would
-follow the uniquitous bell-shaped \fInormal\fP or \fIGaussian\fP distribution.
+follow the ubiquitous bell-shaped \fInormal\fP or \fIGaussian\fP distribution.
 The exact shape of the bell is determined by the \fIstandard deviation\fP
 of the requested file ages;
 this expresses the variation (in the same unit as we measure the file
 ages) between the ages of different requested files.
 Since recovery requests
-from all users (appart from point-haired managers)
+from all users (apart from point-haired managers)
 always refer to the past,
 the shape is actually one half of a bell curve.
 You can see the normal curve for a standard deviation of 200 in Figure 1.
@@ -128,7 +128,7 @@ these notes, pointed me to an excellent analysis of the Gaussian function
 available online at
 \fChttp://mathworld.wolfram.com/GaussianDistribution.html\fP.
 There I found that the cumulative distribution function
-(the integral I was painstakenly calculating) can be determined by means of
+(the integral I was painstakingly calculating) can be determined by means of
 the so-called \fIerror function\fP, which surprise-surprise is part of the 
 Unix C math library.
 You can see how we would spread 30 files in a period of around 2000 days
@@ -146,11 +146,11 @@ file pruning strategies described above.
 It is available for download in source form through a BSD-style license from
 http://www.spinellis.gr/sw/unix/prune.
 \fIPrune\fP 
-will delete files from the specified set targetting a given distribution
+will delete files from the specified set targeting a given distribution
 of the files within time,
 while also supporting size, number, and age constraints.
 Its main purpose is to keep a set of daily-created backup files
-in managable size,
+in manageable size,
 while still providing reasonable access to older versions.
 Specifying a size, file number, or age constraint will
 simply remove files starting from the oldest, until the
@@ -158,7 +158,7 @@ constraint is met.
 The distribution specification (exponential, Gaussian (normal), or Fibonacci)
 provides finer control of the files to delete,
 allowing the retention of recent copies and the increasingly
-agressive pruning of the older files.
+aggressive pruning of the older files.
 The retention schedule specifies the age intervals for which files
 will be retained.
 As an example, an exponential retention schedule for 10 files
@@ -175,8 +175,8 @@ allowing files to gradually migrate from one interval to the next
 as time goes by.
 It may also keep additional files, if the complete file set satisfies
 the specified constraint.
-The algorithm used for prunning does not assume that the files are
-uniformally distributed;
+The algorithm used for pruning does not assume that the files are
+uniformly distributed;
 \fIprune\fP will successfully prune files stored at irregular intervals.
 .PP
 \fIPrune\fP is invoked through the following syntax:
@@ -202,7 +202,7 @@ If more files can be accommodated (because e.g. some intervals are
 empty), or the specified size limit has not been reached, \fIprune\fP
 will retain additional files, deleting old files until the constraint is
 satisfied.
-The \fB-F\fP flag can be used to override this behaviour.
+The \fB-F\fP flag can be used to override this behavior.
 On the other hand, if a constraint is violated \fIprune\fP
 may not retain any files in given interval;
 the \fB-K\fP flag can be used to always keep at least one file
@@ -217,11 +217,11 @@ The following examples illustrate some possible uses for \fIprune\fP:
 ssh remotehost tar cf - /datafiles >backup/`date +'%Y%m%d'`
 prune -e 2 backup/*
 .DE
-Backup \fIremotehost\fP, storing the result in file file
+Backup \fIremotehost\fP, storing the result in a file
 named with today's timestamp (e.g. 20021219).
 Prune the files in the backup directory
 so that each retained file's age will be double that of its
-immediately younger neighbour.
+immediately younger neighbor.
 .DS
 .ft C
 prune -g 365 -c 30 *
@@ -267,6 +267,6 @@ schedule.
 The prune tool allows you to rationally specify and automatically manage
 the retention schedule to suit your needs.
 An exponential schedule with an integer base or a Fibonacci-based schedule
-can be easilly understood by unsophisticated users, while a schedule with
+can be easily understood by unsophisticated users, while a schedule with
 a normal distribution and an appropriately set standard deviation
 is more likely to reflect your true file retention requirements.
