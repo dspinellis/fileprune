@@ -1,0 +1,172 @@
+.TH PRUNE 1 "18 December 2002"
+.\" 
+.\" (C) Copyright 2002 Diomidis Spinellis.  All rights reserved.
+.\" 
+.\" Permission to use, copy, and distribute this software and its
+.\" documentation for any purpose and without fee for noncommercial use
+.\" is hereby granted, provided that the above copyright notice appear in
+.\" all copies and that both that copyright notice and this permission notice
+.\" appear in supporting documentation.
+.\" 
+.\" THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
+.\" WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+.\" MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+.\"
+.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.1 2002/12/18 17:17:09 dds Exp $
+.\"
+.SH NAME
+prune \- prune a file set according to a given age distribution
+.SH SYNOPSIS
+\fBprune\fP 
+[\fB\-n\fP|\fB\-N\fP|\fB\-p\fP]
+[\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP[\fBk\fP|\fBm\fP|\fBg\fP|\fBt\fP]|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
+[\fB\-e\fP \fIexponent\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
+[\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP]
+[\fB\-FK\fP]
+\fIfile\fR ...
+.SH DESCRIPTION
+\fIPrune\fP 
+will delete files from the specified set targetting a given distribution
+of the files within time as well as size, number, and age constraints.
+Its main purpose is to keep a set of daily-created backup files
+in managable size,
+while still providing reasonable access to older versions.
+Specifying a size, file number, or age constraint will
+simply remove files starting from the oldest, until the
+constraint is met.
+The distribution specification (exponential, Gaussian (normal), or Fibonacci)
+provides finer control of the files to delete,
+allowing the retention of recent copies and the increasingly
+agressive pruning of the older files.
+The retention schedule specifies the age intervals for which files
+will be retained.
+As an example, an exponential retention schedule for 10 files
+with an exponent of 2 will be
+.IP
+1 2 4 8 16 32 64 128 256 512 1024
+.PP
+The above schedule specifies that for the interval of 65 to 128
+days there should be (at least) one retained file (unless constraints
+and options override this setting).
+Retention schedules are always calculated and evaluated in integer days.
+By default \fIprune\fP will keep the oldest file within each day interval
+allowing files to migrate from one interval to the next as time goes by.
+It may also keep additional files, if the complete file set satisfies
+the specified constraint.
+The algorithm used for prunning does not assume that the files are
+uniformally distributed;
+\fIprune\fP will successfully prune file collections stored at
+irregular intervals.
+
+.SH OPTIONS
+.IP "\fB\-n\fP"
+Do not delete files; only print file names that would be deleted.
+.IP "\fB\-N\fP"
+Do not delete files; only print file names that would be retained.
+.IP "\fB\-p\fP"
+Do not process files.
+Print the specified schedule for \fIcount\fP elements.
+.IP "\fB\-c\fP \fIcount\fP"
+Keep \fIcount\fP files.
+.IP "\fB\-s\fP \fIsize\fP"
+Keep files totalling \fIsize\fP bytes.
+The \fIsize\fP argument can be followed by a 
+\fBk\fP, \fBm\fP, \fBg\fP, or \fBt\fP uppercase or lowercase suffix
+to express quantities from kilobytes to terabytes.
+.IP "\fB\-a\fP \fIage\fP"
+Keep files up to the specified \fIage\fP.
+The \fIage\fP argument can be followed by a
+\fBw\fP, \fBm\fP, or \fBy\fP suffix to specify
+weeks, months, or years.
+.IP "\fB\-e\fP \fIexponent\fP"
+Use an exponential distribution of the specified \fIexponent\fP for pruning.
+As an example, an exponent of 2 will retain 10 files in a period of 1024 days.
+To determine the exponent for keeping \fIn\fP files in a period
+of \fId\fP days use the formula
+.EQ
+exponent = e sup {ln d over n}
+.EN
+.\" \fIexponent\fP = exp(ln(\fId\fP)/\fIn\fP).
+.IP "\fB\-g\fP \fIsd\fP"
+Use a Gaussian (normal) distribution with the given \fIstandard deviation\fP
+for the pruning schedule.
+The height of the curve with a standard deviation of \(*s is given by the
+formula 
+.\" f(\fIx\fP) = 1 / (\(s \(sr(2 \(*p)) exp(-\fIx\fP\s-2\u2\d\s0 / 2 / \(s\s-2\u2\d\s0);
+.EQ
+f(x) = 1 over { sqrt{2 pi } sigma } e sup {-x sup 2 over {2 sigma  sup 2}}
+.EN
+All intervals from \fIa\fP to \fIb\fP are calculated to have the same
+.EQ
+int from a to b f(x) dx
+.EN
+The standard deviation is specified in day units;
+as a rule of a thumb the oldest file retained will have an age of twice the
+standard deviation.
+.IP "\fB\-f\fP"
+Use a Fibonacci distribution for the pruning schedule.
+The Fibonacci sequence starts with 1, 1, and each subsequent term is the sum
+of the two previous ones.
+.IP "\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP"
+For determining a file's age use its access, modification, or
+creation time.
+By default the modification time is used.
+.IP "\fB\-F\fP"
+Force file pruning even if the size or count constraint has
+not been exceeded.
+.IP "\fB\-K\fP"
+Keep files scheduled in each pruning interval,
+even if the size or count constraint has been exceeded.
+
+.SH EXAMPLE
+prune -e 2 backup/*
+.br
+Prune the files in the backup directory
+so that each retained file's age will be double that of its
+immediately younger neighbour.
+.LP
+prune -g 365 -c 30 *
+.br
+Keep at most 30 files with their ages following a
+Gaussian (normal) distribution with a standard deviation of one year.
+.LP
+prune -e 2 -s 5G *
+.br
+Prune the specified files following an 
+exponential schedule so that no more than
+5GB are occupied.
+More than one file may be left in an interval,
+if the size constraint is met.
+Alternatively, some old intervals may be emptied in order
+to satisfy the size constraint.
+.LP
+prune -F -e 2 -s 5G *
+.br
+As above, but leave no more than one file in each scheduled interval.
+.LP
+prune -K -e 2 -s 5G *
+.br
+As in the first example of this series,
+but leave exactly one file in each interval,
+even if this will violate the size constraint.
+.LP
+prune -a 1m -f
+.br
+Delete all files older than one month use;
+a Fibonacci distribution for pruning the remaining ones.
+.SH "SEE ALSO"
+newsyslog(8)
+.SH AUTHOR
+(C) Copyright 2002 Diomidis Spinellis.
+.SH BUGS
+The Gaussian (normal) distribution is calculated by numerically integrating
+the normal function.
+If the file number or count is large compared to the
+specified standard deviation, the calculation may take
+an exceedingly long time.
+It is advisable to first calculate and
+print the pruning schedule with a command like
+.br
+prune -g 100 -p -c 20
+.br
+to ensure that the schedule can be calculated.
