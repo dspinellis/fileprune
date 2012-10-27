@@ -1,0 +1,9 @@
+Debug
+RCS
+*.obj
+fileprune-*.tar.gz
+fileprune.exe
+fileprune.pdf
+fileprune.ps
+fileprune.txt
+todo
