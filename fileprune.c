@@ -19,6 +19,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
@@ -58,6 +59,8 @@ static int opt_size = 0;	/* Keep size files */
 static off_t size;
 static int opt_age = 0;		/* Keep files aged <days */
 static long days;
+static int opt_size_free = 0;	/* Keep size files */
+static off_t size_free;
 static int opt_exp = 0;		/* Use exponential distribution */
 static double exponent = 2.0;
 static int opt_gauss = 0;	/* Use Gaussian distribution */
@@ -89,7 +92,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]]\n"
+		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]|-S size[k|m|g|t]]\n"
 		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FKv] file ...\n"
 		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f] [-FKv] date ...\n"
 		"-n\t\tDo not delete files; print file names to delete\n"
@@ -99,6 +102,7 @@ usage(void)
 		"-s size\t\tKeep files of size bytes (can multiply with k, m, g, t)\n"
 		"-a age\t\tKeep files up to the specified age\n"
 		"\t\t(age is in days, can postfix with w(eeks), m(months) y(years))\n"
+		"-S size\t\tEnsure that size bytes are free on the device\n"
 		"-e exp\t\tUse an exponential distribution\n"
 		"-g sd\t\tUse a Gaussian distribution with given standard deviation\n"
 		"-f\t\tUse a Fibonacci distribution\n"
@@ -150,7 +154,7 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:t:v")) != EOF)
+	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:S:t:v")) != EOF)
 		switch (c) {
 		case 'a':
 			if (!optarg)
@@ -185,6 +189,22 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			opt_use_date = 1;
+			break;
+		case 'S':
+			if (!optarg)
+				usage();
+			opt_size_free = 1;
+			size_free = strtoul(optarg, &endptr, 10);
+			if (!*optarg || size_free == 0)
+				error_msg("Invalid size argument");
+			switch (*endptr) {
+			case 't': case 'T': size_free *= 1024; /* FALLTHROUGH */
+			case 'g': case 'G': size_free *= 1024; /* FALLTHROUGH */
+			case 'm': case 'M': size_free *= 1024; /* FALLTHROUGH */
+			case 'k': case 'K': size_free *= 1024; break;
+			case 0: break;
+			default: error_msg("Invalid size multiplier");
+			}
 			break;
 		case 'e':
 			opt_exp = 1;
@@ -253,7 +273,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Cannot specify more than one output option\n");
 		usage();
 	}
-	if (opt_count + opt_size + opt_age > 1) {
+	if (opt_count + opt_size + opt_size_free + opt_age > 1) {
 		fprintf(stderr, "Cannot specify more than one schedule limit option\n");
 		usage();
 	}
@@ -547,6 +567,24 @@ prunefile(struct s_finfo *f)
 }
 
 /*
+ * Do we fulfill the size_free constraints?
+ */
+static int
+enough_size_free(struct s_finfo *f)
+{
+	assert(opt_size_free);
+	struct statvfs buf;
+
+	int ret = statvfs(f->name, &buf);
+	if (ret != 0)
+		error_pmsg("statsvfs", f->name);
+
+	off_t bytes_free = buf.f_bavail * buf.f_bsize;
+	fprintf(stderr, "%s %d %d\n", f->name, f->todelete, bytes_free > size_free);
+	return bytes_free > size_free;
+}
+
+/*
  * Given the theoretical pruning schedule and the actual files
  * perform the pruning operation.
  */
@@ -613,6 +651,21 @@ execute_schedule(void)
 			if (!finfo[fi].todelete) {
 				prunefile(&finfo[fi]);
 				currcount--;
+			}
+		}
+	} else if (opt_size_free) {
+		/* Delete candidates */
+		for (fi = nfiles - 1; fi >= 0 && (opt_forceprune || !enough_size_free(&finfo[fi])); fi--) {
+			if (finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				totsize -= finfo[fi].size;
+			}
+		}
+		/* Delete non-candidate old files */
+		for (fi = nfiles - 1; fi >= 0 && !opt_keepfiles && (finfo[fi].todelete || !enough_size_free(&finfo[fi])); fi--) {
+			if (!finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				totsize -= finfo[fi].size;
 			}
 		}
 	} else {
