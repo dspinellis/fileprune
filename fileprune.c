@@ -17,6 +17,7 @@
  *  limitations under the License.
  */
 
+#define _XOPEN_SOURCE 500 // For nftw
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
@@ -29,6 +30,7 @@
 #include <errno.h>
 
 #ifdef unix
+#include <ftw.h>
 #include <unistd.h>	/* unlink, getopt */
 #else
 int unlink(const char *path);
@@ -550,6 +552,21 @@ print_schedule(void)
 }
 
 /*
+ * Callback for recursive directory removing
+ */
+static int
+unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+    int rv = remove(fpath);
+
+    if (rv)
+	error_pmsg("remove", fpath);
+
+    return rv;
+}
+
+
+/*
  * Try to prune a file - as specified
  */
 static void
@@ -558,8 +575,8 @@ prunefile(struct s_finfo *f)
 	if (opt_print_keep || opt_print_del)
 		f->deleted = 1;
 	else {
-		if (unlink(f->name) < 0)
-			error_pmsg("unlink", f->name);
+		if (nftw(f->name, unlink_cb, 64, FTW_DEPTH | FTW_PHYS | FTW_MOUNT) < 0)
+			error_pmsg("nftw", f->name);
 		else
 			if (opt_verbose)
 				printf("Deleted %s\n", f->name);
