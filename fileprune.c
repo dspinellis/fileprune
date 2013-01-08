@@ -2,7 +2,7 @@
  *
  * fileprune - Prune a set of files, removing older copies
  *
- * (C) Copyright 2002-2004 Diomidis Spinellis
+ * (C) Copyright 2002-2013 Diomidis Spinellis
  *
  * Permission to use, copy, and distribute this software and its
  * documentation for any purpose and without fee is hereby granted,
@@ -13,8 +13,6 @@
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.c,v 1.9 2004/03/28 11:36:34 dds Exp $
  *
  */
 
@@ -122,41 +120,8 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "nNpc:s:a:e:g:ft:FK")) != EOF)
+	while ((c = getopt(argc, argv, "a:c:e:Ffg:KNnps:t:")) != EOF)
 		switch (c) {
-		case 'n':
-			opt_print_del = 1;
-			break;
-		case 'N':
-			opt_print_keep = 1;
-			break;
-		case 'p':
-			opt_print_sched = 1;
-			break;
-		case 'c':
-			if (!optarg)
-				usage();
-			opt_count = 1;
-			count = strtoul(optarg, &endptr, 10);
-			if (!*optarg || *endptr || count == 0)
-				error_msg("Invalid count argument");
-			break;
-		case 's':
-			if (!optarg)
-				usage();
-			opt_size = 1;
-			size = strtoul(optarg, &endptr, 10);
-			if (!*optarg || size == 0)
-				error_msg("Invalid size argument");
-			switch (*endptr) {
-			case 't': case 'T': size *= 1024; /* FALLTHROUGH */
-			case 'g': case 'G': size *= 1024; /* FALLTHROUGH */
-			case 'm': case 'M': size *= 1024; /* FALLTHROUGH */
-			case 'k': case 'K': size *= 1024; break;
-			case 0: break;
-			default: error_msg("Invalid size multiplier");
-			}
-			break;
 		case 'a':
 			if (!optarg)
 				usage();
@@ -180,6 +145,14 @@ main(int argc, char *argv[])
 				error_msg("Invalid date multiplier");
 			}
 			break;
+		case 'c':
+			if (!optarg)
+				usage();
+			opt_count = 1;
+			count = strtoul(optarg, &endptr, 10);
+			if (!*optarg || *endptr || count == 0)
+				error_msg("Invalid count argument");
+			break;
 		case 'e':
 			opt_exp = 1;
 			if (!optarg)
@@ -187,6 +160,12 @@ main(int argc, char *argv[])
 			exponent = strtod(optarg, &endptr);
 			if (!*optarg || *endptr || exponent <= 0.0)
 				error_msg("Invalid exponent argument");
+			break;
+		case 'F':
+			opt_forceprune = 1;
+			break;
+		case 'f':
+			opt_fib = 1;
 			break;
 		case 'g':
 			opt_gauss = 1;
@@ -196,19 +175,38 @@ main(int argc, char *argv[])
 			if (!*optarg || *endptr || exponent < 1.0)
 				error_msg("Invalid standard deviation argument");
 			break;
-		case 'f':
-			opt_fib = 1;
+		case 'K':
+			opt_keepfiles = 1;
+			break;
+		case 'N':
+			opt_print_keep = 1;
+			break;
+		case 'n':
+			opt_print_del = 1;
+			break;
+		case 'p':
+			opt_print_sched = 1;
+			break;
+		case 's':
+			if (!optarg)
+				usage();
+			opt_size = 1;
+			size = strtoul(optarg, &endptr, 10);
+			if (!*optarg || size == 0)
+				error_msg("Invalid size argument");
+			switch (*endptr) {
+			case 't': case 'T': size *= 1024; /* FALLTHROUGH */
+			case 'g': case 'G': size *= 1024; /* FALLTHROUGH */
+			case 'm': case 'M': size *= 1024; /* FALLTHROUGH */
+			case 'k': case 'K': size *= 1024; break;
+			case 0: break;
+			default: error_msg("Invalid size multiplier");
+			}
 			break;
 		case 't':
 			if (!optarg || !*optarg || !strchr("amc", *optarg))
 				error_msg("Invalid time specification");
 			opt_timespec = *optarg;
-			break;
-		case 'K':
-			opt_keepfiles = 1;
-			break;
-		case 'F':
-			opt_forceprune = 1;
 			break;
 		case '?':
 			usage();
