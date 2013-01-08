@@ -7,11 +7,10 @@ WEBDIR=/dds/pubs/web/home/sw/unix/$(NAME)
 ADDSRC=getopt.c erf.c
 ADDFILE=$(ADDSRC) ChangeLog.txt fileprune.jpg
 
-CC=cl
-CFLAGS=-Zi
+CFLAGS=-O
 
-$(NAME).exe: $(NAME).c $(ADDSRC)
-	$(CC) fileprune.c $(ADDSRC) setargv.obj
+$(NAME): $(NAME).c $(ADDSRC)
+	$(CC) -o $(NAME) $(NAME).c $(ADDSRC)
 
 $(NAME).ps: $(NAME).1
 	eqn <$? | groff -man -Tps > $@
