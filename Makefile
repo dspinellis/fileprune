@@ -1,6 +1,4 @@
 NAME=fileprune
-UXHOST=istlab
-SSH=plink
 VERSION=$(shell ident $(NAME).c | awk '/Id:/{print $$3} ')
 DIR=$(NAME)-$(VERSION)
 SRC_BALL=$(DIR).tar.gz
@@ -16,10 +14,10 @@ $(NAME).exe: $(NAME).c $(ADDSRC)
 	$(CC) fileprune.c $(ADDSRC) setargv.obj
 
 $(NAME).ps: $(NAME).1
-	$(SSH) $(UXHOST) groff -man -Tps <$? > $@
+	eqn <$? | groff -man -Tps > $@
 
 $(NAME).txt: $(NAME).1
-	$(SSH) $(UXHOST) groff -man -Tascii <$? | $(SSH) $(UXHOST) col -b > $@
+	eqn <$? | groff -man -Tascii | col -b > $@
 
 $(NAME).pdf: $(NAME).ps
 	ps2pdf $? $@
