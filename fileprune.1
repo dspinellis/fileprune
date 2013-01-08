@@ -1,6 +1,6 @@
-.TH FILEPRUNE 1 "13 October 2003"
+.TH FILEPRUNE 1 "8 January 2013"
 .\" 
-.\" (C) Copyright 2002 Diomidis Spinellis.  All rights reserved.
+.\" (C) Copyright 2002-2013 Diomidis Spinellis.  All rights reserved.
 .\" 
 .\" Permission to use, copy, and distribute this software and its
 .\" documentation for any purpose and without fee for noncommercial use
@@ -12,8 +12,6 @@
 .\" WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
 .\" MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 .\"
-.\" $Id: \\dds\\src\\sysutil\\fileprune\\RCS\\fileprune.1,v 1.5 2003/10/15 12:32:08 dds Exp $
-.\"
 .SH NAME
 fileprune \- prune a file set according to a given age distribution
 .SH SYNOPSIS
@@ -24,6 +22,14 @@ fileprune \- prune a file set according to a given age distribution
 [\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP]
 [\fB\-FK\fP]
 \fIfile\fR ...
+.br
+\fBfileprune\fP 
+\fB-d\fP
+\fB\-n\fP|\fB\-N
+[\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
+[\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
+[\fB\-FK\fP]
+\fIdate\fR ...
 .SH DESCRIPTION
 \fIFileprune\fP 
 will delete files from the specified set targeting a given distribution
@@ -121,6 +127,11 @@ not been exceeded.
 .IP "\fB\-K\fP"
 Keep files scheduled in each pruning interval,
 even if the size or count constraint has been exceeded.
+.IP "\fB\-d\fP"
+Use a list of ISO dates rather than files as an argument of the pruning schedule.
+Each date argument must be of the form \fIYYYY-MM-DD \fP[\fIhh\fP[:\fImm\fP[:\fIss\fP]]].
+This option must be used with one of the \fB\-N\fP or \fB\-n\fP options,
+and cannot be combined with the \fB\-t\fP or \fB\-s\fP options.
 
 .SH EXAMPLE
 .PP

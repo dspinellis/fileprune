@@ -61,8 +61,21 @@ static int opt_gauss = 0;	/* Use Gaussian distribution */
 static double sd = 180;
 static int opt_fib = 0;		/* Use Fibonacci distribution */
 static char opt_timespec = 'm'; /* Time to use */
+static int opt_timespec_set = 0; /* True if time type was specified */
 static int opt_forceprune = 0;	/* Force pruning even if size/count are ok */
 static int opt_keepfiles = 0;	/* Keep files even if size/count are not ok */
+static int opt_use_date = 0;	/* Use date list rather than actual files */
+
+/* Information on the files we are to process */
+static struct s_finfo {
+	char *name;		/* File name */
+	off_t size;		/* Its size in bytes */
+	time_t time;		/* Age time (as specified) */
+	int todelete;		/* True if delete candidate */
+	int deleted;		/* True if deleted */
+} *finfo;
+
+static long nfiles = 0;
 
 static char *argv0;
 
@@ -70,7 +83,9 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]] [-e exp|-g sd|-f] [-t a|m|c] [-FK] file ...\n"
+		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]]\n"
+		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FK] file ...\n"
+		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f] [-FK] date ...\n"
 		"-n\t\tDo not delete files; print file names to delete\n"
 		"-N\t\tDo not delete files; print file names to retain\n"
 		"-p\t\tPrint the specified schedule for count elements\n"
@@ -84,7 +99,8 @@ usage(void)
 		"-t a|m|c\tFor age use access, modification (default), creation time\n"
 		"-F\t\tForce pruning even if size/count have not been exceeded\n"
 		"-K\t\tKeep scheduled files even if size/count have been exceeded\n"
-		, argv0
+		"-d\t\tUse a list of ISO dates, rather than actual files\n"
+		, argv0, argv0
 	);
 	exit(1);
 }
@@ -109,9 +125,11 @@ extern int	optind;		/* Global argv index. */
 
 /* Forward declarations */
 static void stat_files(int argc, char *argv[]);
+static void parse_dates(int argc, char *argv[]);
 static void create_schedule(void);
 static void print_schedule(void);
 static void execute_schedule(void);
+static void * xmalloc(size_t size);
 
 int
 main(int argc, char *argv[])
@@ -120,7 +138,7 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "a:c:e:Ffg:KNnps:t:")) != EOF)
+	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:t:")) != EOF)
 		switch (c) {
 		case 'a':
 			if (!optarg)
@@ -152,6 +170,9 @@ main(int argc, char *argv[])
 			count = strtoul(optarg, &endptr, 10);
 			if (!*optarg || *endptr || count == 0)
 				error_msg("Invalid count argument");
+			break;
+		case 'd':
+			opt_use_date = 1;
 			break;
 		case 'e':
 			opt_exp = 1;
@@ -207,18 +228,47 @@ main(int argc, char *argv[])
 			if (!optarg || !*optarg || !strchr("amc", *optarg))
 				error_msg("Invalid time specification");
 			opt_timespec = *optarg;
+			opt_timespec_set = 1;
 			break;
 		case '?':
 			usage();
 		}
-		if ((opt_print_keep + opt_print_del + opt_print_sched > 1) ||
-		    (opt_count + opt_size + opt_age > 1) ||
-		    (opt_exp + opt_gauss + opt_fib > 1) ||
-		    (opt_print_sched && !opt_count) ||
-		    (argv[optind] == NULL && !opt_print_sched))
+		if (opt_print_keep + opt_print_del + opt_print_sched > 1) {
+			fprintf(stderr, "Cannot specify more than one output option\n");
 			usage();
-	stat_files(argc - optind, argv + optind);
+		}
+		if (opt_count + opt_size + opt_age > 1) {
+			fprintf(stderr, "Cannot specify more than one schedule limit option\n");
+			usage();
+		}
+		if (opt_exp + opt_gauss + opt_fib > 1) {
+			fprintf(stderr, "Cannot specify more than one schedule type option\n");
+			usage();
+		}
+		if (opt_print_sched && !opt_count) {
+			fprintf(stderr, "The schedule print option requires a count specification\n");
+			usage();
+		}
+		if (argv[optind] == NULL && !opt_print_sched) {
+			fprintf(stderr, "Required file or date arguments are missing\n");
+			usage();
+		}
+		if (opt_use_date && (opt_timespec_set || opt_size ||
+		     		       !(opt_print_keep || opt_print_del))) {
+			fprintf(stderr, "The -d option requires -N or -n and cannot be used with -t and -s\n");
+			usage();
+		}
+
+	/* Create finfo array */
+	nfiles = argc;
+	finfo = (struct s_finfo *)xmalloc(nfiles * sizeof(struct s_finfo));
+	if (opt_use_date)
+		parse_dates(argc - optind, argv + optind);
+	else
+		stat_files(argc - optind, argv + optind);
+
 	create_schedule();
+
 	if (opt_print_sched)
 		print_schedule();
 	else
@@ -258,16 +308,6 @@ xstrdup(const char *str)
 }
 
 
-/* Information on the files we are to process */
-static struct s_finfo {
-	char *name;		/* File name */
-	off_t size;		/* Its size in bytes */
-	time_t time;		/* Age time (as specified) */
-	int todelete;		/* True if delete candidate */
-	int deleted;		/* True if deleted */
-} *finfo;
-
-static long nfiles = 0;
 static off_t totsize = 0;
 
 /* The pruning schedule and its depth */
@@ -275,7 +315,7 @@ static int *schedule;
 static int depth;
 
 /*
- * Stat all files setting finfo, nfiles, totsize
+ * Stat all files setting finfo elements and totsize
  */
 static void
 stat_files(int argc, char *argv[])
@@ -283,8 +323,6 @@ stat_files(int argc, char *argv[])
 	struct stat sb;
 	int i;
 
-	nfiles = argc;
-	finfo = (struct s_finfo *)xmalloc(argc * sizeof(struct s_finfo));
 	for (i = 0; i < argc; i++) {
 		if (stat(argv[i], &sb) < 0)
 			error_pmsg("stat", argv[i]);
@@ -303,6 +341,38 @@ stat_files(int argc, char *argv[])
 		}
 		finfo[i].size = sb.st_size;
 		totsize += sb.st_size;
+		finfo[i].name = xstrdup(argv[i]);
+		finfo[i].deleted = finfo[i].todelete = 0;
+	}
+}
+
+/*
+ * Parse a list of dates setting finfo elements
+ */
+static void
+parse_dates(int argc, char *argv[])
+{
+	int i;
+	struct tm t;
+
+	for (i = 0; i < argc; i++) {
+		memset(&t, 0, sizeof(t));
+		if (sscanf(argv[i], "%d-%d-%d %d:%d:%d",
+		    &t.tm_year,
+		    &t.tm_mon,
+		    &t.tm_mday,
+		    &t.tm_hour,
+		    &t.tm_min,
+		    &t.tm_sec) < 3) {
+			fprintf(stderr, "%s: Unable to parse date [%s] as YYYY-MM-DD [hh:[mm:[ss]]]", argv0, argv[i]);
+			exit(4);
+		}
+		t.tm_year -= 1900;
+		t.tm_mon--;
+		if ((finfo[i].time = mktime(&t)) == (time_t)-1) {
+			fprintf(stderr, "%s: Invalid time specification: %s", argv0, argv[i]);
+			exit(4);
+		}
 		finfo[i].name = xstrdup(argv[i]);
 		finfo[i].deleted = finfo[i].todelete = 0;
 	}
@@ -475,9 +545,11 @@ execute_schedule(void)
 	if (opt_age) {
 		/* Delete all old files */
 		time_t limit = now - days * 60 * 60 * 24;
-		for (fi = nfiles - 1; fi >= 0; fi--)
+		for (fi = nfiles - 1; fi >= 0; fi--) {
+			fprintf(stderr, "name[%s]=%d days=%ld now=%ld limit=%ld\n", finfo[fi].name, (int)finfo[fi].time, days, (int)now,  (int)limit);
 			if (!finfo[fi].todelete && finfo[fi].time < limit)
 				prunefile(&finfo[fi]);
+		}
 	}
 	if (opt_print_keep || opt_print_del)
 		for (fi = 0; fi < nfiles; fi++)
