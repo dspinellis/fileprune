@@ -2,8 +2,13 @@ Debug
 RCS
 *.obj
 fileprune-*.tar.gz
+fileprune-*.zip
 fileprune.exe
 fileprune.pdf
 fileprune.ps
 fileprune.txt
 todo
+fileprune.pdb
+fileprune.sln
+fileprune.suo
+vc100.pdb
