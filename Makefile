@@ -10,7 +10,7 @@ ADDFILE=$(ADDSRC) ChangeLog.txt fileprune.jpg
 CFLAGS=-O
 
 $(NAME): $(NAME).c $(ADDSRC)
-	$(CC) -o $(NAME) $(NAME).c $(ADDSRC) -lm
+	$(CC) $(CFLAGS) -o $(NAME) $(NAME).c $(ADDSRC) -lm
 
 $(NAME).ps: $(NAME).1
 	eqn <$? | groff -man -Tps > $@
