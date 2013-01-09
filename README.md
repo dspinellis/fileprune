@@ -31,7 +31,12 @@ uniformally distributed;
 _fileprune_ will successfully prune file collections stored at
 irregular intervals.
 
+# Project home
 You can download the source and executables from the
 [project's page](http://www.spinellis.gr/sw/unix/fileprune).
 You can also read more in the article
 [Organized pruning of file sets](http://www.spinellis.gr/pubs/trade/2003-login-prune/html/prune.html).  _;login:_, 28(3):39-42, June 2003.
+
+# Building
+* To build the program under Unix, Linux, Cygwin run ```make```
+* To build the program under Microsoft C/C++ run ```nmake /f Makefile.mak```
