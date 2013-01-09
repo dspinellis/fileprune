@@ -148,6 +148,15 @@ so that each retained file's age will be double that of its
 immediately younger neighbor.
 .PP
 .ft C
+fileprune -N -d -e 1.2 -c 40 *
+.ft P
+.br
+Keep at most 40 files.
+This particular distribution will result in daily copies for
+the first fortnight, at least weekly for the next month, and
+almost monthly for the first year.
+.PP
+.ft C
 fileprune -g 365 -c 30 *
 .ft P
 .br
@@ -186,10 +195,26 @@ fileprune -a 1m -f
 .br
 Delete all files older than one month use;
 use a Fibonacci distribution for pruning the remaining ones.
+.PP
+.ft C
+.nf
+SNAPSHOTS=/tmp/snapshots.$$
+ec2-describe-snapshots --filter status=completed |
+awk '$1 == "SNAPSHOT" {print $2, substr($5, 1, 10)}' |
+sort -k2 >$SNAPSHOTS
+fileprune -n -d -e 1.2 -c 40 `awk '{print $2}' $SNAPSHOTS` |
+sort |
+join -1 1 -2 2 -o 2.1 - $SNAPSHOTS |
+xargs -n 1 ec2-delete-snapshot
+rm -f $SNAPSHOTS
+.fi
+.ft P
+.br
+Prune AWS-hosted daily snapshots to leave 40.
 .SH "SEE ALSO"
 newsyslog(8)
 .SH AUTHOR
-(C) Copyright 2002 Diomidis Spinellis.
+(C) Copyright 2002-2013 Diomidis Spinellis.
 .SH BUGS
 The Gaussian (normal) distribution is calculated by trying successive
 increments of the normal function's distribution function.
