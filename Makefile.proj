@@ -14,7 +14,7 @@ ADDFILE=$(ADDSRC) ChangeLog.txt fileprune.jpg
 
 CFLAGS=-O
 
-$(NAME): $(NAME).c
+$(NAME).exe: $(NAME).c
 	$(CC) $(CFLAGS) -o $(NAME) $(NAME).c -lm
 
 $(NAME).ps: $(NAME).1
@@ -35,7 +35,7 @@ $(SRC_BALL): $(DOC) $(NAME).1 $(NAME).c $(ADDFILE) Makefile.mak Makefile
 	tar cvf - $(DIR) | gzip -c >$(SRC_BALL)
 	cmd /c rd /q/s "$(DIR)"
 
-web: $(DOC) $(SRC_BALL)
+web: $(DOC) $(SRC_BALL) $(NAME).exe
 	-chmod 666 $(WEBDIR)/$(NAME).c
 	-chmod 666 $(WEBDIR)/$(NAME).1
 	cp -f $(SRC_BALL) $(ADDFILE) $(NAME).exe $(NAME).c $(NAME).1 $(NAME).pdf $(WEBDIR)
