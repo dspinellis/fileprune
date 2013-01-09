@@ -1,5 +1,5 @@
 NAME=fileprune
-VERSION=$(shell ident $(NAME).c | awk '/Id:/{print $$3} ')
+VERSION=1.10
 DIR=$(NAME)-$(VERSION)
 SRC_BALL=$(DIR).tar.gz
 DOC=$(NAME).txt $(NAME).pdf
@@ -9,8 +9,8 @@ ADDFILE=$(ADDSRC) ChangeLog.txt fileprune.jpg
 
 CFLAGS=-O
 
-$(NAME): $(NAME).c $(ADDSRC)
-	$(CC) $(CFLAGS) -o $(NAME) $(NAME).c $(ADDSRC) -lm
+$(NAME): $(NAME).c
+	$(CC) $(CFLAGS) -o $(NAME) $(NAME).c -lm
 
 $(NAME).ps: $(NAME).1
 	eqn <$? | groff -man -Tps > $@

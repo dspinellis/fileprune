@@ -119,8 +119,11 @@ error_pmsg(const char *operation, const char *fname)
 }
 
 
+#if defined(_MSC_VER)
+/* Microsoft Visual C/C++ lacks these, so we declare them here. */
 extern char	*optarg;	/* Global argument pointer. */
 extern int	optind;		/* Global argv index. */
+#endif
 
 
 /* Forward declarations */
