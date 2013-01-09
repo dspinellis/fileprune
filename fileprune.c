@@ -260,7 +260,7 @@ main(int argc, char *argv[])
 		}
 
 	/* Create finfo array */
-	nfiles = argc;
+	nfiles = argc - optind;
 	finfo = (struct s_finfo *)xmalloc(nfiles * sizeof(struct s_finfo));
 	if (opt_use_date)
 		parse_dates(argc - optind, argv + optind);
