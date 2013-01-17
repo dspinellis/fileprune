@@ -15,8 +15,8 @@ ADDFILE=$(ADDSRC) ChangeLog.txt fileprune.jpg
 
 CFLAGS=-O
 
-$(NAME).exe: $(NAME).c
-	$(CC) $(CFLAGS) -o $(NAME) $(NAME).c -lm
+$(NAME).exe: $(NAME).c $(ADDSRC)
+	nmake /f Makefile.mak
 
 $(NAME).ps: $(NAME).1
 	eqn <$? | groff -man -Tps > $@
