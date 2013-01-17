@@ -236,31 +236,32 @@ main(int argc, char *argv[])
 		case '?':
 			usage();
 		}
-		if (opt_print_keep + opt_print_del + opt_print_sched > 1) {
-			fprintf(stderr, "Cannot specify more than one output option\n");
-			usage();
-		}
-		if (opt_count + opt_size + opt_age > 1) {
-			fprintf(stderr, "Cannot specify more than one schedule limit option\n");
-			usage();
-		}
-		if (opt_exp + opt_gauss + opt_fib > 1) {
-			fprintf(stderr, "Cannot specify more than one schedule type option\n");
-			usage();
-		}
-		if (opt_print_sched && !opt_count) {
-			fprintf(stderr, "The schedule print option requires a count specification\n");
-			usage();
-		}
-		if (argv[optind] == NULL && !opt_print_sched) {
-			fprintf(stderr, "Required file or date arguments are missing\n");
-			usage();
-		}
-		if (opt_use_date && (opt_timespec_set || opt_size ||
-		     		       !(opt_print_keep || opt_print_del))) {
-			fprintf(stderr, "The -d option requires -N or -n and cannot be used with -t and -s\n");
-			usage();
-		}
+
+	if (opt_print_keep + opt_print_del + opt_print_sched > 1) {
+		fprintf(stderr, "Cannot specify more than one output option\n");
+		usage();
+	}
+	if (opt_count + opt_size + opt_age > 1) {
+		fprintf(stderr, "Cannot specify more than one schedule limit option\n");
+		usage();
+	}
+	if (opt_exp + opt_gauss + opt_fib > 1) {
+		fprintf(stderr, "Cannot specify more than one schedule type option\n");
+		usage();
+	}
+	if (opt_print_sched && !opt_count) {
+		fprintf(stderr, "The schedule print option requires a count specification\n");
+		usage();
+	}
+	if (argv[optind] == NULL && !opt_print_sched) {
+		fprintf(stderr, "Required file or date arguments are missing\n");
+		usage();
+	}
+	if (opt_use_date && (opt_timespec_set || opt_size ||
+			       !(opt_print_keep || opt_print_del))) {
+		fprintf(stderr, "The -d option requires -N or -n and cannot be used with -t and -s\n");
+		usage();
+	}
 
 	/* Create finfo array */
 	nfiles = argc - optind;
