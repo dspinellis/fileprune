@@ -40,6 +40,6 @@ $(TGZ_BALL): $(DOC) $(NAME).1 $(NAME).c $(ADDFILE) Makefile.mak Makefile
 web: $(DOC) $(TGZ_BALL) $(NAME).exe
 	-chmod 666 $(WEBDIR)/$(NAME).c
 	-chmod 666 $(WEBDIR)/$(NAME).1
-	cp -f $(TGZ_BALL) $(ZIP_BALL) $(NAME).exe $(NAME).pdf $(WEBDIR)
+	cp -f $(ADDFILE) $(TGZ_BALL) $(ZIP_BALL) $(NAME).exe $(NAME).pdf $(WEBDIR)
 	cp -f README.md $(WEBDIR)/README.txt
 	sed -e "s/VERSION/${VERSION}/" index.html >${WEBDIR}/index.html
