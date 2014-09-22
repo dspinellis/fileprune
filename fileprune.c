@@ -69,7 +69,7 @@ static int opt_gauss = 0;	/* Use Gaussian distribution */
 /* Standard deviation for the normal function */
 static double sd = 180;
 static int opt_fib = 0;		/* Use Fibonacci distribution */
-static char opt_timespec = 'm'; /* Time to use */
+static char *opt_timespec = "m"; /* Time to use */
 static int opt_timespec_set = 0; /* True if time type was specified */
 static int opt_forceprune = 0;	/* Force pruning even if size/count are ok */
 static int opt_keepfiles = 0;	/* Keep files even if size/count are not ok */
@@ -109,6 +109,7 @@ usage(void)
 		"-g sd\t\tUse a Gaussian distribution with given standard deviation\n"
 		"-f\t\tUse a Fibonacci distribution\n"
 		"-t a|m|c\tFor age use access, modification (default), creation time\n"
+		"-t PAT\tFor age use access, use the given strptime pattern\n"
 		"-F\t\tForce pruning even if size/count have not been exceeded\n"
 		"-K\t\tKeep scheduled files even if size/count have been exceeded\n"
 		"-v\t\tVerbose: print names of deleted files\n"
@@ -262,9 +263,9 @@ main(int argc, char *argv[])
 			}
 			break;
 		case 't':
-			if (!optarg || !*optarg || !strchr("amc", *optarg))
+			if (!optarg || !*optarg)
 				error_msg("Invalid time specification");
-			opt_timespec = *optarg;
+			opt_timespec = optarg;
 			opt_timespec_set = 1;
 			break;
 		case '?':
@@ -371,22 +372,26 @@ stat_files(int argc, char *argv[])
 {
 	struct stat sb;
 	int i;
+	struct tm tm;
+	char *ret;
 
 	for (i = 0; i < argc; i++) {
 		if (stat(argv[i], &sb) < 0)
 			error_pmsg("stat", argv[i]);
-		switch (opt_timespec) {
-		case 'a':
+		if (strcmp(opt_timespec, "a") == 0)
 			finfo[i].time = sb.st_atime;
-			break;
-		case 'm':
+		else if (strcmp(opt_timespec, "m") == 0)
 			finfo[i].time = sb.st_mtime;
-			break;
-		case 'c':
+		else if  (strcmp(opt_timespec, "c") == 0)
 			finfo[i].time = sb.st_ctime;
-			break;
-		default:
-			assert(0);
+		else {
+			memset(&tm, 0, sizeof(struct tm));
+			ret = strptime(argv[i], opt_timespec, &tm);
+			if (ret == NULL) {
+				fprintf(stderr, "%s: Could not match %s against %s.\n", argv0, argv[i], opt_timespec);
+				exit(2);
+			}
+			finfo[i].time = mktime(&tm);
 		}
 		finfo[i].size = sb.st_size;
 		totsize += sb.st_size;
