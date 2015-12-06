@@ -2,7 +2,7 @@
  *
  * fileprune - Prune a set of files, removing older copies
  *
- * (C) Copyright 2002-2013 Diomidis Spinellis
+ * (C) Copyright 2002-2015 Diomidis Spinellis
  *
  * Permission to use, copy, and distribute this software and its
  * documentation for any purpose and without fee is hereby granted,
@@ -65,6 +65,7 @@ static int opt_timespec_set = 0; /* True if time type was specified */
 static int opt_forceprune = 0;	/* Force pruning even if size/count are ok */
 static int opt_keepfiles = 0;	/* Keep files even if size/count are not ok */
 static int opt_use_date = 0;	/* Use date list rather than actual files */
+static int opt_verbose = 0;	/* Print names of deleted files */
 
 /* Information on the files we are to process */
 static struct s_finfo {
@@ -84,8 +85,8 @@ usage(void)
 {
 	fprintf(stderr,
 		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]]\n"
-		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FK] file ...\n"
-		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f] [-FK] date ...\n"
+		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FKv] file ...\n"
+		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f] [-FKv] date ...\n"
 		"-n\t\tDo not delete files; print file names to delete\n"
 		"-N\t\tDo not delete files; print file names to retain\n"
 		"-p\t\tPrint the specified schedule for count elements\n"
@@ -99,6 +100,7 @@ usage(void)
 		"-t a|m|c\tFor age use access, modification (default), creation time\n"
 		"-F\t\tForce pruning even if size/count have not been exceeded\n"
 		"-K\t\tKeep scheduled files even if size/count have been exceeded\n"
+		"-v\t\tVerbose: print names of deleted files\n"
 		"-d\t\tUse a list of ISO dates, rather than actual files\n"
 		, argv0, argv0
 	);
@@ -141,7 +143,7 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:t:")) != EOF)
+	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:t:v")) != EOF)
 		switch (c) {
 		case 'a':
 			if (!optarg)
@@ -204,6 +206,9 @@ main(int argc, char *argv[])
 			break;
 		case 'N':
 			opt_print_keep = 1;
+			break;
+		case 'v':
+			opt_verbose = 1;
 			break;
 		case 'n':
 			opt_print_del = 1;
@@ -477,9 +482,13 @@ prunefile(struct s_finfo *f)
 {
 	if (opt_print_keep || opt_print_del)
 		f->deleted = 1;
-	else
+	else {
 		if (unlink(f->name) < 0)
 			error_pmsg("unlink", f->name);
+		else
+			if (opt_verbose)
+				printf("Deleted %s\n", f->name);
+	}
 }
 
 /*

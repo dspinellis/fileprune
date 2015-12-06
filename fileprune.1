@@ -1,6 +1,6 @@
-.TH FILEPRUNE 1 "8 January 2013"
+.TH FILEPRUNE 1 "6 December 2015"
 .\" 
-.\" (C) Copyright 2002-2013 Diomidis Spinellis.  All rights reserved.
+.\" (C) Copyright 2002-2015 Diomidis Spinellis.  All rights reserved.
 .\" 
 .\" Permission to use, copy, and distribute this software and its
 .\" documentation for any purpose and without fee for noncommercial use
@@ -20,7 +20,7 @@ fileprune \- prune a file set according to a given age distribution
 [\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP[\fBk\fP|\fBm\fP|\fBg\fP|\fBt\fP]|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
 [\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP]
-[\fB\-FK\fP]
+[\fB\-FKv\fP]
 \fIfile\fR ...
 .br
 \fBfileprune\fP 
@@ -28,7 +28,7 @@ fileprune \- prune a file set according to a given age distribution
 \fB\-n\fP|\fB\-N
 [\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
-[\fB\-FK\fP]
+[\fB\-FKv\fP]
 \fIdate\fR ...
 .SH DESCRIPTION
 \fIFileprune\fP 
@@ -115,7 +115,7 @@ as a rule of a thumb the oldest file retained will have an age of twice the
 standard deviation.
 .IP "\fB\-f\fP"
 Use a Fibonacci distribution for the pruning schedule.
-The Fibonacci sequence starts with 1, 1, and each subsequent term is the sum
+The Fibonacci sequence starts with 0, 1, and each subsequent term is the sum
 of the two previous ones.
 .IP "\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP"
 For determining a file's age use its access, modification, or
@@ -127,6 +127,8 @@ not been exceeded.
 .IP "\fB\-K\fP"
 Keep files scheduled in each pruning interval,
 even if the size or count constraint has been exceeded.
+.IP "\fB\-v\fP"
+Operate in verbose mode, printing the name of each deleted file.
 .IP "\fB\-d\fP"
 Use a list of ISO dates rather than files as an argument of the pruning schedule.
 Each date argument must be of the form \fIYYYY-MM-DD \fP[\fIhh\fP[:\fImm\fP[:\fIss\fP]]].
