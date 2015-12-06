@@ -15,3 +15,41 @@ install: $(NAME)
 
 clean:
 	rm -f $(NAME) $(NAME).o
+
+test:
+	mkdir -p tfiles
+	for i in `seq 1 30` ; do touch -d "$$i days ago" tfiles/$$i ; done
+	expr `./fileprune -c 10 -n tfiles/* | wc -l` == 20
+	expr `./fileprune -c 10 -N tfiles/* | wc -l` == 10
+	./fileprune -e 2 -c 10 tfiles/*
+	test -r tfiles/1
+	test -r tfiles/2
+	test -r tfiles/3
+	test -r tfiles/4
+	test -r tfiles/5
+	test -r tfiles/6
+	test -r tfiles/7
+	test -r tfiles/8
+	test -r tfiles/15
+	test -r tfiles/30
+	! test -r tfiles/9
+	! test -r tfiles/10
+	! test -r tfiles/11
+	! test -r tfiles/12
+	! test -r tfiles/13
+	! test -r tfiles/14
+	! test -r tfiles/16
+	! test -r tfiles/17
+	! test -r tfiles/18
+	! test -r tfiles/19
+	! test -r tfiles/20
+	! test -r tfiles/21
+	! test -r tfiles/22
+	! test -r tfiles/23
+	! test -r tfiles/24
+	! test -r tfiles/25
+	! test -r tfiles/26
+	! test -r tfiles/27
+	! test -r tfiles/28
+	! test -r tfiles/29
+	rm -rf tfiles
