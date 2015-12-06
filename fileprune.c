@@ -208,7 +208,7 @@ main(int argc, char *argv[])
 			opt_print_keep = 1;
 			break;
 		case 'v':
-			opt_verbose = 1;
+			opt_verbose++;
 			break;
 		case 'n':
 			opt_print_del = 1;
@@ -506,18 +506,30 @@ execute_schedule(void)
 	time(&now);
 	for (fi = nfiles - 1, si = depth - 1; fi >= 0; ) {
 		int age = (int)(difftime(now, finfo[fi].time) / 60 / 60 / 24) + 1;
+		if (opt_verbose > 1)
+			printf("File %3d %s aged %5d; schedule %3d %5d: ",
+					fi, finfo[fi].name, age,
+					si, schedule[si]);
 		if (si == -1 || age > schedule[si]) {
 			/* File older than our interval: dump it, next file */
 			finfo[fi].todelete = 1;
 			fi--;
+			if (opt_verbose > 1)
+				printf("delete candidate\n");
 		} else if (age <= schedule[si] && (si == 0 || age > schedule[si - 1])) {
 			/* File within our interval: keep it, next interval */
 			fi--;
 			si--;
-		} else
+			if (opt_verbose > 1)
+				printf("within interval\n");
+		} else {
 			/* File newer than our interval: next interval */
 			si--;
+			if (opt_verbose > 1)
+				printf("newer than interval\n");
+		}
 	}
+	/* Delete candidates until the constraint is reached */
 	if (opt_size) {
 		/* Delete candidates */
 		for (fi = nfiles - 1; (opt_forceprune || totsize > size) && fi >= 0; fi--) {
