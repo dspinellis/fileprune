@@ -1,3 +1,7 @@
+revision 1.11
+date: 2015/12/06 09:52
+Add verbose flag
+----------------------------
 revision 1.10
 date: 2013/01/08 17:16:34
 Support for specifying dates as arguments

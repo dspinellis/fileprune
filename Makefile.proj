@@ -4,7 +4,7 @@
 # make -f Makefile.proj web
 
 NAME=fileprune
-VERSION=1.10
+VERSION=1.11
 DIR=$(NAME)-$(VERSION)
 TGZ_BALL=$(DIR).tar.gz
 ZIP_BALL=$(DIR).zip
