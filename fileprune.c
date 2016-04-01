@@ -109,14 +109,14 @@ usage(void)
 static void
 error_msg(const char *errmsg)
 {
-	fprintf(stderr, "%s: %s", argv0, errmsg);
+	fprintf(stderr, "%s: %s\n", argv0, errmsg);
 	exit(2);
 }
 
 static void
 error_pmsg(const char *operation, const char *fname)
 {
-	fprintf(stderr, "%s: %s(%s): %s", argv0, operation, fname, strerror(errno));
+	fprintf(stderr, "%s: %s(%s): %s\n", argv0, operation, fname, strerror(errno));
 	exit(3);
 }
 
@@ -373,13 +373,13 @@ parse_dates(int argc, char *argv[])
 		    &t.tm_hour,
 		    &t.tm_min,
 		    &t.tm_sec) < 3) {
-			fprintf(stderr, "%s: Unable to parse date [%s] as YYYY-MM-DD [hh:[mm:[ss]]]", argv0, argv[i]);
+			fprintf(stderr, "%s: Unable to parse date [%s] as YYYY-MM-DD [hh:[mm:[ss]]]\n", argv0, argv[i]);
 			exit(4);
 		}
 		t.tm_year -= 1900;
 		t.tm_mon--;
 		if ((finfo[i].time = mktime(&t)) == (time_t)-1) {
-			fprintf(stderr, "%s: Invalid time specification: %s", argv0, argv[i]);
+			fprintf(stderr, "%s: Invalid time specification: %s\n", argv0, argv[i]);
 			exit(4);
 		}
 		finfo[i].name = xstrdup(argv[i]);
