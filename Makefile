@@ -1,6 +1,7 @@
 NAME=fileprune
 PREFIX?=/usr/local
 INSTALL?=install
+CFLAGS=-D_FILE_OFFSET_BITS=64
 
 all: $(NAME)
 
