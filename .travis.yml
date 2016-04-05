@@ -1,3 +1,19 @@
 language: c
 
 script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make && make test ; fi
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "LwG4TH+mzSgTZkjxqDtzdY0VljO8Nm1YUWXZBgmTkeDSJk4zhiUz2pFX88ukdCHu+gP/cfykNGusO542EMi0p5hplxZ8JyfbmcYIpVNvCqwQL5OjziUOeauWnpfKmhSThUFKtphwxwBvjKMpP3KKMgfA5f9MP7AJQH5RvRm+jgo="
+
+addons:
+  coverity_scan:
+    project:
+      name: "dspinellis/fileprune"
+      description: "Build submitted via Travis CI"
+    notification_email: dds@aueb.gr
+    build_command_prepend: "./configure; make clean"
+    build_command:   "make -j 4"
+    branch_pattern: coverity_scan
