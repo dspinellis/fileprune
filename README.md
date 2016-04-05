@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/dspinellis/fileprune.svg?branch=master)](https://travis-ci.org/dspinellis/fileprune)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/8473/badge.svg)](https://scan.coverity.com/projects/dspinellis-fileprune)
+
+
 _Fileprune_
 will delete files from the specified set targetting a given distribution
 of the files within time as well as size, number, and age constraints.
