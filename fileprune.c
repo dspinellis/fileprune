@@ -572,7 +572,7 @@ execute_schedule(void)
 		/* Delete all old files */
 		time_t limit = now - days * 60 * 60 * 24;
 		for (fi = nfiles - 1; fi >= 0; fi--) {
-			fprintf(stderr, "name[%s]=%d days=%ld now=%ld limit=%ld\n", finfo[fi].name, (int)finfo[fi].time, days, (int)now,  (int)limit);
+			fprintf(stderr, "name[%s]=%d days=%ld now=%ld limit=%ld\n", finfo[fi].name, (int)finfo[fi].time, days, (long)now,  (long)limit);
 			if (!finfo[fi].todelete && finfo[fi].time < limit)
 				prunefile(&finfo[fi]);
 		}
