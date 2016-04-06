@@ -14,6 +14,6 @@ addons:
       name: "dspinellis/fileprune"
       description: "Build submitted via Travis CI"
     notification_email: dds@aueb.gr
-    build_command_prepend: "./configure; make clean"
+    build_command_prepend: "make clean"
     build_command:   "make -j 4"
     branch_pattern: coverity_scan
