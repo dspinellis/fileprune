@@ -437,7 +437,7 @@ create_schedule(void)
 		int start = 0;
 		int n = 0;
 		int current = 1;
-		int diff;
+		int diff = 1;
 
 		while (n < depth) {
 			/* Find how many days area needed to cover area */
