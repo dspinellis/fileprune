@@ -44,6 +44,9 @@ double erf(double);
 #ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
+#ifndef min
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#endif
 
 /* Program options and their arguments */
 static int opt_print_del = 0;	/* Do not delete files, just print them */
@@ -77,6 +80,7 @@ static struct s_finfo {
 	int deleted;		/* True if deleted */
 } *finfo;
 
+static time_t oldest;
 static long nfiles = 0;
 
 static char *argv0;
@@ -132,10 +136,12 @@ extern int	optind;		/* Global argv index. */
 /* Forward declarations */
 static void stat_files(int argc, char *argv[]);
 static void parse_dates(int argc, char *argv[]);
+static void sort_files(void);
 static void create_schedule(void);
 static void print_schedule(void);
 static void execute_schedule(void);
 static void * xmalloc(size_t size);
+static void * xrealloc(void * ptr, size_t size);
 
 int
 main(int argc, char *argv[])
@@ -276,6 +282,7 @@ main(int argc, char *argv[])
 		parse_dates(argc - optind, argv + optind);
 	else
 		stat_files(argc - optind, argv + optind);
+	sort_files();
 
 	create_schedule();
 
@@ -308,6 +315,16 @@ xmalloc(size_t size)
 	return (p);
 }
 
+/* Checked realloc */
+static void *
+xrealloc(void * ptr, size_t size)
+{
+	void *p = realloc(ptr, size);
+	if (!p)
+		error_msg("Out of memory");
+	return (p);
+}
+
 /* Checked strdup */
 static char *
 xstrdup(const char *str)
@@ -321,8 +338,8 @@ xstrdup(const char *str)
 static off_t totsize = 0;
 
 /* The pruning schedule and its depth */
-static int *schedule;
-static int depth;
+static int *schedule = NULL;
+static int nschedule;
 
 /*
  * Stat all files setting finfo elements and totsize
@@ -388,6 +405,34 @@ parse_dates(int argc, char *argv[])
 	}
 }
 
+/* qsort comparison function */
+static int
+bytime(const void *a, const void *b)
+{
+	return (((const struct s_finfo *)b)->time - ((const struct s_finfo *)a)->time);
+}
+
+/*
+ * Sorts the list of file entries
+ */
+static void
+sort_files(void)
+{
+	qsort(finfo, nfiles, sizeof(struct s_finfo), bytime);
+}
+
+/*
+ * Ensures that schedule[n] exists.
+ */
+static void
+ensure_schedule(int n)
+{
+	while (n >= nschedule) {
+		nschedule *= 2;
+	}
+	schedule = (int *)xrealloc((void *)schedule, sizeof(int) * nschedule);
+}
+
 /*
  * Create the pruning schedule in the schedule array.
  * This contains the day numbers of each interval that
@@ -396,11 +441,38 @@ parse_dates(int argc, char *argv[])
 static void
 create_schedule(void)
 {
-	int i;
+	int i, oldest, depth;
+	time_t now;
 
-	if (opt_fib || opt_exp)
-		depth = max(count, nfiles);
-	else if (opt_gauss) {
+	nschedule = 1;
+	ensure_schedule(1);
+
+	if (nfiles > 0) {
+		time(&now);
+		oldest = (int)(difftime(now, finfo[nfiles - 1].time) / 60 / 60 / 24) + 1;
+	} else
+		oldest = 1;
+
+	if (opt_fib) {
+		schedule[0] = schedule[1] = 1;
+		i = 2;
+		for (i = 2; schedule[i-1] < oldest; i++) {
+			ensure_schedule(i);
+			schedule[i] = schedule[i - 1] + schedule[i - 2];
+		}
+		nschedule = i;
+	} else if (opt_exp) {
+		int v, order;
+
+		schedule[0] = 1;
+		for (order = i = 1; schedule[i-1] < oldest; i++) {
+			ensure_schedule(i);
+			v = (int)pow(exponent, order++);
+			/* Ensure at least a one day increment */
+			schedule[i] = max(v, schedule[i - 1] + 1);
+		}
+		nschedule = i;
+	} else if (opt_gauss) {
 		if (opt_size)
 			depth = size / (totsize / nfiles);
 		else if (opt_age)
@@ -413,25 +485,7 @@ create_schedule(void)
 			depth = (int)((D(days) - .5) / (D(1) - .5));
 		else
 			depth = max(count, nfiles);
-	} else
-		depth = nfiles;
 
-	schedule = (int *)xmalloc(sizeof(int) * depth);
-
-	if (opt_fib) {
-		schedule[0] = schedule[1] = 1;
-		for (i = 2; i < depth; i++)
-			schedule[i] = schedule[i - 1] + schedule[i - 2];
-	} else if (opt_exp) {
-		int v, order;
-
-		schedule[0] = 1;
-		for (order = i = 1; i < depth; i++) {
-			v = (int)pow(exponent, order++);
-			/* Ensure at least a one day increment */
-			schedule[i] = max(v, schedule[i - 1] + 1);
-		}
-	} else if (opt_gauss) {
 		/* The total area under the +ve half is 0.5 */
 		double area = 0.5 / (depth + 0.5);
 		int start = 0;
@@ -447,15 +501,22 @@ create_schedule(void)
 			    current - start > 10 * diff ||
 			    current > 365000) {
 				diff = current - start;
+				ensure_schedule(n);
 				schedule[n++] = start + 1;
 				start = current;
 				current += diff;
 			} else
 				current++;
 		}
-	} else
-		for (i = 0; i < depth; i++)
+		nschedule = n;
+	} else {
+		schedule[0] = 0;
+		for (i = 1; schedule[i-1] < oldest; i++) {
+			ensure_schedule(i);
 			schedule[i] = i;
+		}
+		nschedule = i;
+	}
 }
 
 /* Print (rather than execute) the calculated schedule */
@@ -464,15 +525,8 @@ print_schedule(void)
 {
 	int i;
 
-	for (i = 0; i < depth; i++)
+	for (i = 0; i < nschedule; i++)
 		printf("%d\n", schedule[i]);
-}
-
-/* qsort comparison function */
-static int
-bytime(const void *a, const void *b)
-{
-	return (((const struct s_finfo *)b)->time - ((const struct s_finfo *)a)->time);
 }
 
 /*
@@ -502,10 +556,9 @@ execute_schedule(void)
 	int fi, si;	/* File and schedule index */
 	time_t now;
 
-	qsort(finfo, nfiles, sizeof(struct s_finfo), bytime);
 	/* Mark delete candidates */
 	time(&now);
-	for (fi = nfiles - 1, si = depth - 1; fi >= 0; ) {
+	for (fi = nfiles - 1, si = nschedule - 1; fi >= 0; ) {
 		int age = (int)(difftime(now, finfo[fi].time) / 60 / 60 / 24) + 1;
 		if (opt_verbose > 1)
 			printf("File %3d %s aged %5d; schedule %3d %5d: ",
