@@ -1,6 +1,6 @@
 '\" e
-.\" ** The above line should force tbl to be a preprocessor **
-.TH FILEPRUNE 1 "6 December 2015"
+.\" ** The above line should force eqn to be a preprocessor **
+.TH FILEPRUNE 1 "7 July 2016"
 .\"
 .\"  Copyright 2002-2016 Diomidis Spinellis
 .\"
@@ -24,7 +24,7 @@ fileprune \- prune a file set according to a given age distribution
 [\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP[\fBk\fP|\fBm\fP|\fBg\fP|\fBt\fP]|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
 [\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP]
-[\fB\-FKv\fP]
+[\fB\-FKYv\fP]
 \fIfile\fR ...
 .br
 \fBfileprune\fP 
@@ -32,7 +32,7 @@ fileprune \- prune a file set according to a given age distribution
 \fB\-n\fP|\fB\-N
 [\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
-[\fB\-FKv\fP]
+[\fB\-FKYv\fP]
 \fIdate\fR ...
 .SH DESCRIPTION
 \fIFileprune\fP 
@@ -131,6 +131,8 @@ not been exceeded.
 .IP "\fB\-K\fP"
 Keep files scheduled in each pruning interval,
 even if the size or count constraint has been exceeded.
+.IP "\fB\-Y\fP"
+Never delete the youngest file, even if other options lead to that.
 .IP "\fB\-v\fP"
 Operate in verbose mode, printing the name of each deleted file.
 Specifying this option a second time will print additional debugging
