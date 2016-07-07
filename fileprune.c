@@ -17,8 +17,10 @@
  *  limitations under the License.
  */
 
+#define _XOPEN_SOURCE 500 // For nftw
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
@@ -28,6 +30,7 @@
 #include <errno.h>
 
 #ifdef unix
+#include <ftw.h>
 #include <unistd.h>	/* unlink, getopt */
 #else
 int unlink(const char *path);
@@ -58,16 +61,19 @@ static int opt_size = 0;	/* Keep size files */
 static off_t size;
 static int opt_age = 0;		/* Keep files aged <days */
 static long days;
+static int opt_size_free = 0;	/* Keep size files */
+static off_t size_free;
 static int opt_exp = 0;		/* Use exponential distribution */
 static double exponent = 2.0;
 static int opt_gauss = 0;	/* Use Gaussian distribution */
 /* Standard deviation for the normal function */
 static double sd = 180;
 static int opt_fib = 0;		/* Use Fibonacci distribution */
-static char opt_timespec = 'm'; /* Time to use */
+static char *opt_timespec = "m"; /* Time to use */
 static int opt_timespec_set = 0; /* True if time type was specified */
 static int opt_forceprune = 0;	/* Force pruning even if size/count are ok */
 static int opt_keepfiles = 0;	/* Keep files even if size/count are not ok */
+static int opt_keep_youngest = 0; /* Never delete youngest file */
 static int opt_use_date = 0;	/* Use date list rather than actual files */
 static int opt_verbose = 0;	/* Print names of deleted files */
 
@@ -89,8 +95,8 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]]\n"
-		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FKv] file ...\n"
+		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]|-S size[k|m|g|t]]\n"
+		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FKYv] file ...\n"
 		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f] [-FKv] date ...\n"
 		"-n\t\tDo not delete files; print file names to delete\n"
 		"-N\t\tDo not delete files; print file names to retain\n"
@@ -99,12 +105,15 @@ usage(void)
 		"-s size\t\tKeep files of size bytes (can multiply with k, m, g, t)\n"
 		"-a age\t\tKeep files up to the specified age\n"
 		"\t\t(age is in days, can postfix with w(eeks), m(months) y(years))\n"
+		"-S size\t\tEnsure that size bytes are free on the device\n"
 		"-e exp\t\tUse an exponential distribution\n"
 		"-g sd\t\tUse a Gaussian distribution with given standard deviation\n"
 		"-f\t\tUse a Fibonacci distribution\n"
 		"-t a|m|c\tFor age use access, modification (default), creation time\n"
+		"-t PAT\tFor age use access, use the given strptime pattern\n"
 		"-F\t\tForce pruning even if size/count have not been exceeded\n"
 		"-K\t\tKeep scheduled files even if size/count have been exceeded\n"
+		"-Y\t\tNever delete the youngest file, even if constraints imply that\n"
 		"-v\t\tVerbose: print names of deleted files\n"
 		"-d\t\tUse a list of ISO dates, rather than actual files\n"
 		, argv0, argv0
@@ -150,7 +159,7 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:t:v")) != EOF)
+	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:S:t:vY")) != EOF)
 		switch (c) {
 		case 'a':
 			if (!optarg)
@@ -185,6 +194,22 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			opt_use_date = 1;
+			break;
+		case 'S':
+			if (!optarg)
+				usage();
+			opt_size_free = 1;
+			size_free = strtoul(optarg, &endptr, 10);
+			if (!*optarg || size_free == 0)
+				error_msg("Invalid size argument");
+			switch (*endptr) {
+			case 't': case 'T': size_free *= 1024; /* FALLTHROUGH */
+			case 'g': case 'G': size_free *= 1024; /* FALLTHROUGH */
+			case 'm': case 'M': size_free *= 1024; /* FALLTHROUGH */
+			case 'k': case 'K': size_free *= 1024; break;
+			case 0: break;
+			default: error_msg("Invalid size multiplier");
+			}
 			break;
 		case 'e':
 			opt_exp = 1;
@@ -240,10 +265,13 @@ main(int argc, char *argv[])
 			}
 			break;
 		case 't':
-			if (!optarg || !*optarg || !strchr("amc", *optarg))
+			if (!optarg || !*optarg)
 				error_msg("Invalid time specification");
-			opt_timespec = *optarg;
+			opt_timespec = optarg;
 			opt_timespec_set = 1;
+			break;
+		case 'Y':
+			opt_keep_youngest = 1;
 			break;
 		case '?':
 			usage();
@@ -253,7 +281,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Cannot specify more than one output option\n");
 		usage();
 	}
-	if (opt_count + opt_size + opt_age > 1) {
+	if (opt_count + opt_size + opt_size_free + opt_age > 1) {
 		fprintf(stderr, "Cannot specify more than one schedule limit option\n");
 		usage();
 	}
@@ -349,22 +377,26 @@ stat_files(int argc, char *argv[])
 {
 	struct stat sb;
 	int i;
+	struct tm tm;
+	char *ret;
 
 	for (i = 0; i < argc; i++) {
 		if (stat(argv[i], &sb) < 0)
 			error_pmsg("stat", argv[i]);
-		switch (opt_timespec) {
-		case 'a':
+		if (strcmp(opt_timespec, "a") == 0)
 			finfo[i].time = sb.st_atime;
-			break;
-		case 'm':
+		else if (strcmp(opt_timespec, "m") == 0)
 			finfo[i].time = sb.st_mtime;
-			break;
-		case 'c':
+		else if  (strcmp(opt_timespec, "c") == 0)
 			finfo[i].time = sb.st_ctime;
-			break;
-		default:
-			assert(0);
+		else {
+			memset(&tm, 0, sizeof(struct tm));
+			ret = strptime(argv[i], opt_timespec, &tm);
+			if (ret == NULL) {
+				fprintf(stderr, "%s: Could not match %s against %s.\n", argv0, argv[i], opt_timespec);
+				exit(2);
+			}
+			finfo[i].time = mktime(&tm);
 		}
 		finfo[i].size = sb.st_size;
 		totsize += sb.st_size;
@@ -530,6 +562,21 @@ print_schedule(void)
 }
 
 /*
+ * Callback for recursive directory removing
+ */
+static int
+unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+    int rv = remove(fpath);
+
+    if (rv)
+	error_pmsg("remove", fpath);
+
+    return rv;
+}
+
+
+/*
  * Try to prune a file - as specified
  */
 static void
@@ -538,12 +585,30 @@ prunefile(struct s_finfo *f)
 	if (opt_print_keep || opt_print_del)
 		f->deleted = 1;
 	else {
-		if (unlink(f->name) < 0)
-			error_pmsg("unlink", f->name);
+		if (nftw(f->name, unlink_cb, 64, FTW_DEPTH | FTW_PHYS | FTW_MOUNT) < 0)
+			error_pmsg("nftw", f->name);
 		else
 			if (opt_verbose)
 				printf("Deleted %s\n", f->name);
 	}
+}
+
+/*
+ * Do we fulfill the size_free constraints?
+ */
+static int
+enough_size_free(struct s_finfo *f)
+{
+	assert(opt_size_free);
+	struct statvfs buf;
+
+	int ret = statvfs(f->name, &buf);
+	if (ret != 0)
+		error_pmsg("statsvfs", f->name);
+
+	off_t bytes_free = buf.f_bavail * buf.f_bsize;
+	fprintf(stderr, "%s %d %d\n", f->name, f->todelete, bytes_free > size_free);
+	return bytes_free > size_free;
 }
 
 /*
@@ -554,11 +619,15 @@ static void
 execute_schedule(void)
 {
 	int fi, si;	/* File and schedule index */
+	int youngest = 0; /* Youngest index to delete */
 	time_t now;
+
+	if (opt_keep_youngest)
+		youngest = 1;
 
 	/* Mark delete candidates */
 	time(&now);
-	for (fi = nfiles - 1, si = nschedule - 1; fi >= 0; ) {
+	for (fi = nfiles - 1, si = nschedule - 1; fi >= youngest; ) {
 		int age = (int)(difftime(now, finfo[fi].time) / 60 / 60 / 24) + 1;
 		if (opt_verbose > 1)
 			printf("File %3d %s aged %5d; schedule %3d %5d: ",
@@ -586,14 +655,14 @@ execute_schedule(void)
 	/* Delete candidates until the constraint is reached */
 	if (opt_size) {
 		/* Delete candidates */
-		for (fi = nfiles - 1; (opt_forceprune || totsize > size) && fi >= 0; fi--) {
+		for (fi = nfiles - 1; (opt_forceprune || totsize > size) && fi >= youngest; fi--) {
 			if (finfo[fi].todelete) {
 				prunefile(&finfo[fi]);
 				totsize -= finfo[fi].size;
 			}
 		}
 		/* Delete non-candidate old files */
-		for (fi = nfiles - 1; !opt_keepfiles && totsize > size && fi >= 0; fi--) {
+		for (fi = nfiles - 1; !opt_keepfiles && totsize > size && fi >= youngest; fi--) {
 			if (!finfo[fi].todelete) {
 				prunefile(&finfo[fi]);
 				totsize -= finfo[fi].size;
@@ -602,29 +671,44 @@ execute_schedule(void)
 	} else if (opt_count) {
 		int currcount = nfiles;
 		/* Delete candidates */
-		for (fi = nfiles - 1; (opt_forceprune || currcount > count) && fi >= 0; fi--) {
+		for (fi = nfiles - 1; (opt_forceprune || currcount > count) && fi >= youngest; fi--) {
 			if (finfo[fi].todelete) {
 				prunefile(&finfo[fi]);
 				currcount--;
 			}
 		}
 		/* Delete non-candidate old files */
-		for (fi = nfiles - 1; !opt_keepfiles && currcount > count && fi >= 0; fi--) {
+		for (fi = nfiles - 1; !opt_keepfiles && currcount > count && fi >= youngest; fi--) {
 			if (!finfo[fi].todelete) {
 				prunefile(&finfo[fi]);
 				currcount--;
 			}
 		}
+	} else if (opt_size_free) {
+		/* Delete candidates */
+		for (fi = nfiles - 1; fi >= youngest && (opt_forceprune || !enough_size_free(&finfo[fi])); fi--) {
+			if (finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				totsize -= finfo[fi].size;
+			}
+		}
+		/* Delete non-candidate old files */
+		for (fi = nfiles - 1; fi >= youngest && !opt_keepfiles && (finfo[fi].todelete || !enough_size_free(&finfo[fi])); fi--) {
+			if (!finfo[fi].todelete) {
+				prunefile(&finfo[fi]);
+				totsize -= finfo[fi].size;
+			}
+		}
 	} else {
 		/* Delete candidates */
-		for (fi = nfiles - 1; fi >= 0; fi--)
+		for (fi = nfiles - 1; fi >= youngest; fi--)
 			if (finfo[fi].todelete)
 				prunefile(&finfo[fi]);
 	}
 	if (opt_age) {
 		/* Delete all old files */
 		time_t limit = now - days * 60 * 60 * 24;
-		for (fi = nfiles - 1; fi >= 0; fi--) {
+		for (fi = nfiles - 1; fi >= youngest; fi--) {
 			fprintf(stderr, "name[%s]=%d days=%ld now=%ld limit=%ld\n", finfo[fi].name, (int)finfo[fi].time, days, (long)now,  (long)limit);
 			if (!finfo[fi].todelete && finfo[fi].time < limit)
 				prunefile(&finfo[fi]);

@@ -67,3 +67,22 @@ test2:
 	test -r tfiles/3
 	test -r tfiles/30
 	rm -rf tfiles
+
+test3:
+	mkdir -p tfiles
+	touch -d "2 minutes ago" tfiles/2;
+	touch tfiles/1;
+	./fileprune -F tfiles/*
+	! test -r tfiles/1
+	test -r tfiles/2
+	rm -rf tfiles
+
+test4:
+	mkdir -p tfiles
+	touch -d "2 minutes ago" tfiles/2;
+	touch tfiles/1;
+	./fileprune -Y -F tfiles/*
+	test -r tfiles/1
+	test -r tfiles/2
+	rm -rf tfiles
+
