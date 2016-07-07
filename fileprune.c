@@ -152,6 +152,30 @@ static void execute_schedule(void);
 static void * xmalloc(size_t size);
 static void * xrealloc(void * ptr, size_t size);
 
+/*
+ * Return the passed string argument as a number.
+ * The argument may be suffixed by TGMK multipliers (upper or lowercase).
+ */
+static unsigned long
+unit_string_to_long(char *s)
+{
+	unsigned long v;
+	char *endptr;
+
+	v = strtoul(s, &endptr, 10);
+	if (!*s || v == 0)
+		error_msg("Invalid size argument");
+	switch (*endptr) {
+	case 't': case 'T': v *= 1024; /* FALLTHROUGH */
+	case 'g': case 'G': v *= 1024; /* FALLTHROUGH */
+	case 'm': case 'M': v *= 1024; /* FALLTHROUGH */
+	case 'k': case 'K': v *= 1024; break;
+	case 0: break;
+	default: error_msg("Invalid size multiplier");
+	}
+	return v;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -199,17 +223,7 @@ main(int argc, char *argv[])
 			if (!optarg)
 				usage();
 			opt_size_free = 1;
-			size_free = strtoul(optarg, &endptr, 10);
-			if (!*optarg || size_free == 0)
-				error_msg("Invalid size argument");
-			switch (*endptr) {
-			case 't': case 'T': size_free *= 1024; /* FALLTHROUGH */
-			case 'g': case 'G': size_free *= 1024; /* FALLTHROUGH */
-			case 'm': case 'M': size_free *= 1024; /* FALLTHROUGH */
-			case 'k': case 'K': size_free *= 1024; break;
-			case 0: break;
-			default: error_msg("Invalid size multiplier");
-			}
+			size_free = unit_string_to_long(optarg);
 			break;
 		case 'e':
 			opt_exp = 1;
@@ -252,17 +266,7 @@ main(int argc, char *argv[])
 			if (!optarg)
 				usage();
 			opt_size = 1;
-			size = strtoul(optarg, &endptr, 10);
-			if (!*optarg || size == 0)
-				error_msg("Invalid size argument");
-			switch (*endptr) {
-			case 't': case 'T': size *= 1024; /* FALLTHROUGH */
-			case 'g': case 'G': size *= 1024; /* FALLTHROUGH */
-			case 'm': case 'M': size *= 1024; /* FALLTHROUGH */
-			case 'k': case 'K': size *= 1024; break;
-			case 0: break;
-			default: error_msg("Invalid size multiplier");
-			}
+			size = unit_string_to_long(optarg);
 			break;
 		case 't':
 			if (!optarg || !*optarg)
