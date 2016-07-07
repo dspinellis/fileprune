@@ -21,22 +21,23 @@ fileprune \- prune a file set according to a given age distribution
 .SH SYNOPSIS
 \fBfileprune\fP 
 [\fB\-n\fP|\fB\-N\fP|\fB\-p\fP]
-[\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP[\fBk\fP|\fBm\fP|\fBg\fP|\fBt\fP]|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
+[\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP|\fB\-S\fP \fIsize\fP|\fB\-a\fP \fIage\fP]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
-[\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP]
+[\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP|\fIformat\fP]
 [\fB\-FKYv\fP]
 \fIfile\fR ...
 .br
 \fBfileprune\fP 
 \fB-d\fP
 \fB\-n\fP|\fB\-N
-[\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP[\fBw\fP|\fBm\fP|\fBy\fP]]
+[\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
 [\fB\-FKYv\fP]
 \fIdate\fR ...
 .SH DESCRIPTION
 \fIFileprune\fP 
-will delete files from the specified set targeting a given distribution
+will delete files or directories from the specified set
+targeting a given distribution
 of the files within time as well as size, number, and age constraints.
 Its main purpose is to keep a set of daily-created backup files
 in manageable size,
@@ -79,10 +80,16 @@ Print the specified schedule for \fIcount\fP elements.
 .IP "\fB\-c\fP \fIcount\fP"
 Keep \fIcount\fP files.
 .IP "\fB\-s\fP \fIsize\fP"
-Keep files totaling \fIsize\fP bytes.
-The \fIsize\fP argument can be followed by a 
+Keep files totaling at most \fIsize\fP bytes.
+The \fIsize\fP argument can be followed by a
 \fBk\fP, \fBm\fP, \fBg\fP, or \fBt\fP uppercase or lowercase suffix
 to express quantities from kilobytes to terabytes.
+This option cannot be used when the specified arguments refer to directories.
+.IP "\fB\-S\fP \fIsize\fP"
+Ensure that at least \fIsize\fP bytes will be available on disk
+after the files get deleted.
+The \fIsize\fP argument can be followed by a unit suffix
+as in the case in the \fB-s\fP option.
 .IP "\fB\-a\fP \fIage\fP"
 Keep files up to the specified \fIage\fP.
 The \fIage\fP argument can be followed by a
@@ -90,15 +97,15 @@ The \fIage\fP argument can be followed by a
 weeks, months, or years.
 .IP "\fB\-e\fP \fIbase\fP"
 Use an exponential distribution of the specified \fIbase\fP \fIb\fP for pruning.
-Each successive interval \fIn\fP will end at 
+Each successive interval \fIn\fP will end at
 .EQ
-b sup n.
+b sup n .
 .EN
 As an example, a base of 2 will retain 10 files in a period of 1024 days.
 To determine the exponent for keeping \fIn\fP files in a period
 of \fId\fP days use the formula
 .EQ
-exponent = e sup {ln d over n}
+exponent = e sup {ln d over n} .
 .EN
 .\" \fIexponent\fP = exp(ln(\fId\fP)/\fIn\fP).
 .IP "\fB\-g\fP \fIsd\fP"
@@ -108,11 +115,11 @@ The height of the curve with a standard deviation of \(*s is given by the
 formula 
 .\" f(\fIx\fP) = 1 / (\(s \(sr(2 \(*p)) exp(-\fIx\fP\s-2\u2\d\s0 / 2 / \(s\s-2\u2\d\s0);
 .EQ
-f(x) = 1 over { sqrt{2 pi } sigma } e sup {-x sup 2 over {2 sigma  sup 2}}
+f(x) = 1 over { sqrt{2 pi } sigma } e sup {-x sup 2 over {2 sigma  sup 2}} .
 .EN
 All intervals from \fIa\fP to \fIb\fP are calculated to have the same
 .EQ
-int from a to b f(x) dx
+int from a to b f(x) dx .
 .EN
 The standard deviation is specified in day units;
 as a rule of a thumb the oldest file retained will have an age of twice the
@@ -121,10 +128,13 @@ standard deviation.
 Use a Fibonacci distribution for the pruning schedule.
 The Fibonacci sequence starts with 0, 1, and each subsequent term is the sum
 of the two previous ones.
-.IP "\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP"
+.IP "\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP|\fIformat\fP"
 For determining a file's age use its access, modification, or
 creation time.
 By default the modification time is used.
+If a data format string is provided rather than a single character,
+then this is passed to \fIstrptime(3)\fP,
+in order to obtain the file's age from its file name.
 .IP "\fB\-F\fP"
 Force file pruning even if the size or count constraint has
 not been exceeded.
