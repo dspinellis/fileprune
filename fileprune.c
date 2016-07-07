@@ -110,7 +110,7 @@ usage(void)
 		"-g sd\t\tUse a Gaussian distribution with given standard deviation\n"
 		"-f\t\tUse a Fibonacci distribution\n"
 		"-t a|m|c\tFor age use access, modification (default), creation time\n"
-		"-t PAT\tFor age use access, use the given strptime pattern\n"
+		"-t fmt\tFor age use access, use the given strptime format\n"
 		"-F\t\tForce pruning even if size/count have not been exceeded\n"
 		"-K\t\tKeep scheduled files even if size/count have been exceeded\n"
 		"-Y\t\tNever delete the youngest file, even if constraints imply that\n"
@@ -120,6 +120,7 @@ usage(void)
 	);
 	exit(1);
 }
+
 static void
 error_msg(const char *errmsg)
 {
@@ -387,6 +388,8 @@ stat_files(int argc, char *argv[])
 	for (i = 0; i < argc; i++) {
 		if (stat(argv[i], &sb) < 0)
 			error_pmsg("stat", argv[i]);
+		if (S_ISDIR(sb.st_mode) && opt_size)
+			error_msg("Cannot specify -s on directories");
 		if (strcmp(opt_timespec, "a") == 0)
 			finfo[i].time = sb.st_atime;
 		else if (strcmp(opt_timespec, "m") == 0)
