@@ -19,7 +19,7 @@
 .SH NAME
 fileprune \- prune a file set according to a given age distribution
 .SH SYNOPSIS
-\fBfileprune\fP 
+\fBfileprune\fP
 [\fB\-n\fP|\fB\-N\fP|\fB\-p\fP]
 [\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP|\fB\-S\fP \fIsize\fP|\fB\-a\fP \fIage\fP]
 [\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
@@ -27,7 +27,7 @@ fileprune \- prune a file set according to a given age distribution
 [\fB\-FKYv\fP]
 \fIfile\fR ...
 .br
-\fBfileprune\fP 
+\fBfileprune\fP
 \fB-d\fP
 \fB\-n\fP|\fB\-N
 [\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP]
@@ -35,7 +35,7 @@ fileprune \- prune a file set according to a given age distribution
 [\fB\-FKYv\fP]
 \fIdate\fR ...
 .SH DESCRIPTION
-\fIFileprune\fP 
+\fIFileprune\fP
 will delete files or directories from the specified set
 targeting a given distribution
 of the files within time as well as size, number, and age constraints.
@@ -112,7 +112,7 @@ exponent = e sup {ln d over n} .
 Use a Gaussian (normal) distribution with the given \fIstandard deviation\fP
 for the pruning schedule.
 The height of the curve with a standard deviation of \(*s is given by the
-formula 
+formula
 .\" f(\fIx\fP) = 1 / (\(s \(sr(2 \(*p)) exp(-\fIx\fP\s-2\u2\d\s0 / 2 / \(s\s-2\u2\d\s0);
 .EQ
 f(x) = 1 over { sqrt{2 pi } sigma } e sup {-x sup 2 over {2 sigma  sup 2}} .
@@ -187,7 +187,7 @@ Gaussian (normal) distribution with a standard deviation of one year.
 fileprune -e 2 -s 5G *
 .ft P
 .br
-Prune the specified files following an 
+Prune the specified files following an
 exponential schedule so that no more than
 5GB are occupied.
 More than one file may be left in an interval,
