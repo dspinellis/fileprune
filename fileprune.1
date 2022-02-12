@@ -1,8 +1,8 @@
 '\" e
 .\" ** The above line should force eqn to be a preprocessor **
-.TH FILEPRUNE 1 "7 July 2016"
+.TH FILEPRUNE 1 "12 February 2022"
 .\"
-.\"  Copyright 2002-2016 Diomidis Spinellis
+.\"  Copyright 2002-2022 Diomidis Spinellis
 .\"
 .\"  Licensed under the Apache License, Version 2.0 (the "License");
 .\"  you may not use this file except in compliance with the License.
@@ -79,6 +79,7 @@ Do not process files.
 Print the specified schedule for \fIcount\fP elements.
 .IP "\fB\-c\fP \fIcount\fP"
 Keep \fIcount\fP files.
+A count of zero will prune all specified files.
 .IP "\fB\-s\fP \fIsize\fP"
 Keep files totaling at most \fIsize\fP bytes.
 The \fIsize\fP argument can be followed by a

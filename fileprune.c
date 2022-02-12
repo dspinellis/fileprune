@@ -2,7 +2,7 @@
  *
  *  fileprune - Prune a set of files, removing older copies
  *
- *  Copyright 2002-2016 Diomidis Spinellis
+ *  Copyright 2002-2022 Diomidis Spinellis
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -214,7 +214,7 @@ main(int argc, char *argv[])
 				usage();
 			opt_count = 1;
 			count = strtoul(optarg, &endptr, 10);
-			if (!*optarg || *endptr || count == 0)
+			if (!*optarg || *endptr || count < 0)
 				error_msg("Invalid count argument");
 			break;
 		case 'd':
