@@ -22,7 +22,7 @@ fileprune \- prune a file set according to a given age distribution
 \fBfileprune\fP
 [\fB\-n\fP|\fB\-N\fP|\fB\-p\fP]
 [\fB\-c\fP \fIcount\fP|\fB\-s\fP \fIsize\fP|\fB\-S\fP \fIsize\fP|\fB\-a\fP \fIage\fP]
-[\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
+[\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP|\fB\-h\fP]
 [\fB\-t\fP \fBa\fP|\fBm\fP|\fBc\fP|\fIformat\fP]
 [\fB\-FKYv\fP]
 \fIfile\fR ...
@@ -31,7 +31,7 @@ fileprune \- prune a file set according to a given age distribution
 \fB-d\fP
 \fB\-n\fP|\fB\-N
 [\fB\-c\fP \fIcount\fP|\fB\-a\fP \fIage\fP]
-[\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP]
+[\fB\-e\fP \fIbase\fP|\fB\-g\fP \fIstandard deviation\fP|\fB\-f\fP|\fB\-h\fP]
 [\fB\-FKYv\fP]
 \fIdate\fR ...
 .SH DESCRIPTION
@@ -129,6 +129,17 @@ standard deviation.
 Use a Fibonacci distribution for the pruning schedule.
 The Fibonacci sequence starts with 0, 1, and each subsequent term is the sum
 of the two previous ones.
+.IP "\fB\-h\fP"
+Use human calendar periods in the local time zone.
+Keep the newest file on each of today and the preceding seven days,
+the file nearest midnight on the first of each of the last 13 months
+(including the current month), and the file nearest January 1 of each year
+from the current year through the oldest file's year.
+Missing daily copies are skipped. Monthly and yearly copies may lie on
+either side of the boundary; ties favor the newer file.
+One file may satisfy several periods.
+Count, size, age, and free-space constraints apply as with other distributions.
+This option cannot be combined with another distribution or with \fB-p\fP.
 .IP "\fB\-t\fP \fBa\fP|\fB\m\fP|\fBc\fP|\fIformat\fP"
 For determining a file's age use its access, modification, or
 creation time.

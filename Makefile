@@ -18,7 +18,7 @@ clean:
 	rm -f $(NAME) $(NAME).o
 
 
-test: test1 test2
+test: $(NAME) test1 test2 test-human
 
 test1:
 	mkdir -p tfiles
@@ -86,3 +86,7 @@ test4:
 	test -r tfiles/2
 	rm -rf tfiles
 
+
+.PHONY: test-human
+test-human: $(NAME)
+	python3 test_human.py

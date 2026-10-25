@@ -68,6 +68,7 @@ static double exponent = 2.0;
 static int opt_gauss = 0;	/* Use Gaussian distribution */
 /* Standard deviation for the normal function */
 static double sd = 180;
+static int opt_human = 0;	/* Use human calendar periods */
 static int opt_fib = 0;		/* Use Fibonacci distribution */
 static char *opt_timespec = "m"; /* Time to use */
 static int opt_timespec_set = 0; /* True if time type was specified */
@@ -96,8 +97,8 @@ usage(void)
 {
 	fprintf(stderr,
 		"usage: %s [-n|-p|-N] [-c count|-s size[k|m|g|t]|-a age[w|m|y]|-S size[k|m|g|t]]\n"
-		"\t[-e exp|-g sd|-f] [-t a|m|c] [-FKYv] file ...\n"
-		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f] [-FKv] date ...\n"
+		"\t[-e exp|-g sd|-f|-h] [-t a|m|c] [-FKYv] file ...\n"
+		"or: %s -d -n|-N [-c count|-a age[w|m|y]] [-e exp|-g sd|-f|-h] [-FKv] date ...\n"
 		"-n\t\tDo not delete files; print file names to delete\n"
 		"-N\t\tDo not delete files; print file names to retain\n"
 		"-p\t\tPrint the specified schedule for count elements\n"
@@ -109,6 +110,7 @@ usage(void)
 		"-e exp\t\tUse an exponential distribution\n"
 		"-g sd\t\tUse a Gaussian distribution with given standard deviation\n"
 		"-f\t\tUse a Fibonacci distribution\n"
+		"-h\t\tKeep 8 daily, 13 monthly, and yearly calendar copies\n"
 		"-t a|m|c\tFor age use access, modification (default), creation time\n"
 		"-t fmt\tFor age use access, use the given strptime format\n"
 		"-F\t\tForce pruning even if size/count have not been exceeded\n"
@@ -184,7 +186,7 @@ main(int argc, char *argv[])
 	char *endptr;
 
 	argv0 = argv[0];
-	while ((c = getopt(argc, argv, "a:c:de:Ffg:KNnps:S:t:vY")) != EOF)
+	while ((c = getopt(argc, argv, "a:c:de:Ffg:hKNnps:S:t:vY")) != EOF)
 		switch (c) {
 		case 'a':
 			if (!optarg)
@@ -248,6 +250,9 @@ main(int argc, char *argv[])
 			if (!*optarg || *endptr || exponent < 1.0)
 				error_msg("Invalid standard deviation argument");
 			break;
+		case 'h':
+			opt_human = 1;
+			break;
 		case 'K':
 			opt_keepfiles = 1;
 			break;
@@ -290,10 +295,12 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Cannot specify more than one schedule limit option\n");
 		usage();
 	}
-	if (opt_exp + opt_gauss + opt_fib > 1) {
+	if (opt_exp + opt_gauss + opt_fib + opt_human > 1) {
 		fprintf(stderr, "Cannot specify more than one schedule type option\n");
 		usage();
 	}
+	if (opt_print_sched && opt_human)
+		error_msg("The human-period policy cannot be printed as an age schedule");
 	if (opt_print_sched && !opt_count) {
 		fprintf(stderr, "The schedule print option requires a count specification\n");
 		usage();
@@ -398,6 +405,7 @@ stat_files(int argc, char *argv[])
 			finfo[i].time = sb.st_ctime;
 		else {
 			memset(&tm, 0, sizeof(struct tm));
+			tm.tm_isdst = -1;
 			ret = strptime(argv[i], opt_timespec, &tm);
 			if (ret == NULL) {
 				fprintf(stderr, "%s: Could not match %s against %s.\n", argv0, argv[i], opt_timespec);
@@ -423,6 +431,7 @@ parse_dates(int argc, char *argv[])
 
 	for (i = 0; i < argc; i++) {
 		memset(&t, 0, sizeof(t));
+		t.tm_isdst = -1;
 		if (sscanf(argv[i], "%d-%d-%d %d:%d:%d",
 		    &t.tm_year,
 		    &t.tm_mon,
@@ -448,7 +457,9 @@ parse_dates(int argc, char *argv[])
 static int
 bytime(const void *a, const void *b)
 {
-	return (((const struct s_finfo *)b)->time - ((const struct s_finfo *)a)->time);
+	time_t ta = ((const struct s_finfo *)a)->time;
+	time_t tb = ((const struct s_finfo *)b)->time;
+	return (ta < tb) - (ta > tb);
 }
 
 /*
@@ -482,6 +493,9 @@ create_schedule(void)
 {
 	int i, oldest, depth;
 	time_t now;
+
+	if (opt_human)
+		return;
 
 	nschedule = 1;
 	ensure_schedule(1);
@@ -618,6 +632,78 @@ enough_size_free(struct s_finfo *f)
 	return bytes_free > size_free;
 }
 
+/* Retain the file nearest a calendar boundary; ties prefer the newer file. */
+static void
+keep_nearest(time_t target)
+{
+	int i, best = 0;
+	double distance = fabs(difftime(finfo[0].time, target));
+
+	for (i = 1; i < nfiles; i++) {
+		double d = fabs(difftime(finfo[i].time, target));
+		if (d < distance) {
+			best = i;
+			distance = d;
+		}
+	}
+	finfo[best].todelete = 0;
+}
+
+/* Use local calendar boundaries, allowing mktime to account for DST. */
+static time_t
+calendar_time(struct tm t)
+{
+	time_t result;
+
+	t.tm_isdst = -1;
+	result = mktime(&t);
+	if (result == (time_t)-1)
+		error_msg("Cannot calculate calendar boundary");
+	return result;
+}
+
+static void
+mark_human_periods(time_t now)
+{
+	struct tm today = *localtime(&now), boundary, oldest_date;
+	int i, year;
+
+	if (nfiles == 0)
+		return;
+	oldest_date = *localtime(&finfo[nfiles - 1].time);
+	for (i = 0; i < nfiles; i++)
+		finfo[i].todelete = 1;
+	today.tm_hour = today.tm_min = today.tm_sec = 0;
+	/* Keep the newest file within each of today and the preceding seven days. */
+	for (i = 0; i < 8; i++) {
+		int fi;
+		time_t start, end;
+		boundary = today;
+		boundary.tm_mday -= i;
+		start = calendar_time(boundary);
+		boundary.tm_mday++;
+		end = calendar_time(boundary);
+		for (fi = 0; fi < nfiles; fi++)
+			if (finfo[fi].time >= start && finfo[fi].time < end) {
+				finfo[fi].todelete = 0;
+				break;
+			}
+	}
+	for (i = 0; i < 13; i++) {
+		boundary = today;
+		boundary.tm_mday = 1;
+		boundary.tm_mon -= i;
+		keep_nearest(calendar_time(boundary));
+	}
+	for (year = today.tm_year; year >= oldest_date.tm_year; year--) {
+		boundary = today;
+		boundary.tm_year = year;
+		boundary.tm_mon = 0;
+		boundary.tm_mday = 1;
+		keep_nearest(calendar_time(boundary));
+	}
+}
+
 /*
  * Given the theoretical pruning schedule and the actual files
  * perform the pruning operation.
@@ -634,7 +720,11 @@ execute_schedule(void)
 
 	/* Mark delete candidates */
 	time(&now);
-	for (fi = nfiles - 1, si = nschedule - 1; fi >= youngest; ) {
+	if (opt_human) {
+		mark_human_periods(now);
+		if (opt_keep_youngest)
+			finfo[0].todelete = 0;
+	} else for (fi = nfiles - 1, si = nschedule - 1; fi >= youngest; ) {
 		int age = (int)(difftime(now, finfo[fi].time) / 60 / 60 / 24) + 1;
 		if (opt_verbose > 1)
 			printf("File %3d %s aged %5d; schedule %3d %5d: ",

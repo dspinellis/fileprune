@@ -44,3 +44,11 @@ You can also read more in the article
 # Building
 * To build the program under Unix, Linux, Cygwin run ```make```
 * To build the program under Microsoft C/C++ run ```nmake /f Makefile.mak```
+
+
+Use `fileprune -h -N backup/*` to preview human-period retention:
+the newest copy on each of today and the preceding seven days, a copy nearest
+the first of each of the last 13 months (including this month), and a copy
+nearest January 1 of every year back to the oldest file. Calendar boundaries
+use local time; equal distances favor the newer copy, and a copy can cover
+multiple periods. Remove `-N` to prune. Existing resource limits still apply.
